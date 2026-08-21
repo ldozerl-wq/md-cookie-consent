@@ -24,7 +24,6 @@ function () {
   var SITES = {
     'example.md': {
       privacyUrl   : '/ro/politica-de-confidentialitate',
-      cookieUrl    : '/ro/politica-cookie',
       policyVersion: '1.0',
       revision     : 1,
       defaultLang  : 'ro',
@@ -34,7 +33,6 @@ function () {
 
     'shop.md': {
       privacyUrl   : '/confidentialitate',
-      cookieUrl    : '/cookie',
       policyVersion: '1.0',
       revision     : 1,
       defaultLang  : 'ru',
@@ -46,10 +44,9 @@ function () {
   };
 
   /* Реквизиты оператора и права субъекта данных в баннере не выводятся —
-     они раскрываются на странице Политики Cookie (см. cookie-policy-template.md). */
+     они раскрываются в политике конфиденциальности, единственной ссылке баннера. */
   var DEFAULT = {
     privacyUrl   : '/politica-de-confidentialitate',
-    cookieUrl    : '/politica-cookie',
     policyVersion: '1.0',
     revision     : 1,
     defaultLang  : 'ro',

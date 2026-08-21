@@ -15,7 +15,7 @@ ___INFO___
   "securityGroups": [],
   "displayName": "MD Cookie Consent (Legea 195/2024)",
   "categories": ["UTILITY", "PERSONALIZATION"],
-  "description": "Универсальный cookie-баннер для сайтов Молдовы: Consent Mode v2, 4 категории, RO/RU/EN, журнал согласий. Ссылки на политики задаются полями ниже — отдельно для каждого проекта.",
+  "description": "Универсальный cookie-баннер для сайтов Молдовы: Consent Mode v2, 4 категории, RO/RU/EN, журнал согласий. Ссылка на политику задаётся полем ниже — отдельно для каждого проекта.",
   "containerContexts": ["WEB"]
 }
 
@@ -26,26 +26,15 @@ ___TEMPLATE_PARAMETERS___
   {
     "type": "GROUP",
     "name": "groupPolicies",
-    "displayName": "Ссылки на политики (обязательно)",
+    "displayName": "Ссылка на политику (обязательно)",
     "groupStyle": "NO_ZIPPY",
     "subParams": [
-      {
-        "type": "TEXT",
-        "name": "cookieUrl",
-        "displayName": "Политика Cookie",
-        "simpleValueType": true,
-        "help": "URL отдельной страницы с политикой cookie на этом сайте. Можно относительный (/politica-cookie) или полный. Показывается на первом слое баннера и в окне настроек. Страница обязана существовать на каждом языке витрины.",
-        "valueValidators": [
-          { "type": "NON_EMPTY" }
-        ],
-        "valueHint": "/politica-cookie"
-      },
       {
         "type": "TEXT",
         "name": "privacyUrl",
         "displayName": "Политика конфиденциальности",
         "simpleValueType": true,
-        "help": "URL политики конфиденциальности. Именно здесь раскрываются реквизиты оператора, права субъекта данных и порядок обращения в CNPDCP — в самом баннере их нет.",
+        "help": "URL политики конфиденциальности на этом сайте. Можно относительный (/politica-de-confidentialitate) или полный. Единственная ссылка баннера: именно здесь раскрываются реквизиты оператора, права субъекта данных и порядок обращения в CNPDCP. Отдельная страница политики cookie по закону остаётся обязательной — давайте ссылку на неё из политики конфиденциальности. Страница должна существовать на каждом языке витрины: битая ссылка означает, что требование фактически не выполнено.",
         "valueValidators": [
           { "type": "NON_EMPTY" }
         ],
@@ -226,7 +215,7 @@ ___TEMPLATE_PARAMETERS___
         "name": "runtimeUrl",
         "displayName": "URL файла md-cookie-consent.js",
         "simpleValueType": true,
-        "defaultValue": "https://cdn.jsdelivr.net/gh/ldozerl-wq/md-cookie-consent@v2/md-cookie-consent.js",
+        "defaultValue": "https://cdn.jsdelivr.net/gh/ldozerl-wq/md-cookie-consent@v3/md-cookie-consent.js",
         "help": "Куда вы выложили рантайм баннера. Один файл обслуживает все проекты. Домен должен быть разрешён в правах шаблона (вкладка Permissions → Injects scripts).",
         "valueValidators": [
           { "type": "NON_EMPTY" }
@@ -305,7 +294,6 @@ if (raw && raw.length > 0) {
    --------------------------------------------------------------------------- */
 
 setInWindow('MDCC_CONFIG', {
-  cookieUrl: data.cookieUrl,
   privacyUrl: data.privacyUrl,
   policyVersion: data.policyVersion,
   revision: data.revision,

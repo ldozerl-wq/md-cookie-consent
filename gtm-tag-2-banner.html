@@ -15,7 +15,7 @@
   Требует Тег 1 (gtm-tag-1-consent-default.html) на Consent Initialization.
 
   Настройки сайта задаются переменной GTM или на самом сайте:
-      window.MDCC_CONFIG = { privacyUrl: '...', cookieUrl: '...' };
+      window.MDCC_CONFIG = { privacyUrl: '...' };
   ============================================================================
 -->
 <script>
@@ -38,7 +38,6 @@
      ссылка на которую есть и на первом слое, и в окне настроек. */
   var DEFAULTS = {
     privacyUrl   : '/politica-de-confidentialitate',          // Политика конфиденциальности
-    cookieUrl    : '/politica-cookie',                        // Политика Cookie (отдельная страница!)
     policyVersion: '1.0',                                     // версия политики
     revision     : 1,                                         // ++ при смене политики -> пересогласие
     defaultLang  : 'ro',                                      // ro | ru | en
@@ -68,6 +67,19 @@
     for (var k in src[s])
       if (src[s].hasOwnProperty(k) && src[s][k] !== null && src[s][k] !== undefined && src[s][k] !== '')
         C[k] = src[s][k];
+
+  function warn(msg) {
+    if (window.console && window.console.warn) window.console.warn('[MD Cookie Consent] ' + msg);
+  }
+
+  /* Пустое поле в теге GTM неотличимо от незаполненного, и молчаливый откат
+     на дефолтный путь даёт ссылку в 404 при внешне исправном баннере.
+     Поэтому отличаем «не задано» от «задано» и говорим об этом вслух. */
+  if (!(window.MDCC_CONFIG || {}).privacyUrl) {
+    warn('privacyUrl не задан — ссылка ведёт на ' + C.privacyUrl + '. ' +
+         'Проверьте, что страница существует на каждом языке: иначе требование ' +
+         'о ссылке на политику фактически не выполнено.');
+  }
 
   /* Поля шаблона GTM приходят строками — приводим к нужным типам */
   C.revision   = parseInt(C.revision, 10)   || 0;
@@ -184,11 +196,15 @@
      4. ПЕРЕВОДЫ (RO / RU / EN)
      ========================================================================== */
 
+  /* Одна ссылка — на политику конфиденциальности. Состав cookie, назначение,
+     поставщик и срок хранения раскрываются прямо в окне настроек, поэтому
+     отдельная ссылка на политику cookie из баннера убрана.
+     Сама страница политики cookie по закону остаётся обязательной —
+     ссылку на неё давайте из политики конфиденциальности. */
   function links(t) {
-    var a = [];
-    if (C.cookieUrl)  a.push('<a href="' + C.cookieUrl  + '">' + t.cookiePolicy  + '</a>');
-    if (C.privacyUrl) a.push('<a href="' + C.privacyUrl + '">' + t.privacyPolicy + '</a>');
-    return a.join(' · ');
+    return C.privacyUrl
+      ? '<a href="' + C.privacyUrl + '">' + t.privacyPolicy + '</a>'
+      : '';
   }
 
   function tables(t) {
@@ -231,7 +247,7 @@
 
   T.ro = (function () {
     var t = {
-      cookiePolicy:'Politica Cookie', privacyPolicy:'Politica de confidențialitate',
+      privacyPolicy:'Politica de confidențialitate',
       days:'zile',
       h_name:'Cookie', h_domain:'Furnizor', h_desc:'Scop', h_exp:'Durată',
       e_2y:'2 ani', e_1y:'1 an', e_6m:'6 luni', e_3m:'3 luni', e_24h:'24 ore', e_session:'Sesiune',
@@ -285,7 +301,7 @@
 
   T.ru = (function () {
     var t = {
-      cookiePolicy:'Политика Cookie', privacyPolicy:'Политика конфиденциальности',
+      privacyPolicy:'Политика конфиденциальности',
       days:'дн.',
       h_name:'Cookie', h_domain:'Поставщик', h_desc:'Назначение', h_exp:'Срок',
       e_2y:'2 года', e_1y:'1 год', e_6m:'6 месяцев', e_3m:'3 месяца', e_24h:'24 часа', e_session:'Сессия',
@@ -339,7 +355,7 @@
 
   T.en = (function () {
     var t = {
-      cookiePolicy:'Cookie Policy', privacyPolicy:'Privacy Policy',
+      privacyPolicy:'Privacy Policy',
       days:'days',
       h_name:'Cookie', h_domain:'Provider', h_desc:'Purpose', h_exp:'Retention',
       e_2y:'2 years', e_1y:'1 year', e_6m:'6 months', e_3m:'3 months', e_24h:'24 hours', e_session:'Session',

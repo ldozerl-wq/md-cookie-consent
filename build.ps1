@@ -33,7 +33,7 @@ $header = @'
   Требует Тег 1 (gtm-tag-1-consent-default.html) на Consent Initialization.
 
   Настройки сайта задаются переменной GTM или на самом сайте:
-      window.MDCC_CONFIG = { privacyUrl: '...', cookieUrl: '...' };
+      window.MDCC_CONFIG = { privacyUrl: '...' };
   ============================================================================
 -->
 <script>
