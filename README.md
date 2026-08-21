@@ -314,6 +314,7 @@ python -m http.server 8777 --directory md-cookie-consent
 | URL | Что проверяет |
 |---|---|
 | `http://localhost:8777/test.html` | Основной путь: `MDCC_CONFIG` со строковыми значениями (как их отдаёт шаблон GTM) + рантайм отдельным файлом |
+| `…/test.html?cdn=1` | Продовый путь целиком: рантайм тянется с jsDelivr по тому же URL, что стоит в шаблоне |
 | `…/test.html?inline=1` | Запасной путь: сгенерированный Custom HTML тег |
 | `…/test.html?bias=equal` | Вариант с равнозначными кнопками |
 

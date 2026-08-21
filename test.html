@@ -114,7 +114,10 @@
       loadTag('gtm-tag-2-banner.html', function () { setTimeout(dump, 1200); });
     } else {
       var s = document.createElement('script');
-      s.src = 'md-cookie-consent.js';
+      /* ?cdn=1 — грузить рантайм с jsDelivr, ровно как это делает шаблон GTM */
+      s.src = (location.search.indexOf('cdn=1') > -1)
+        ? 'https://cdn.jsdelivr.net/gh/ldozerl-wq/md-cookie-consent@v1/md-cookie-consent.js'
+        : 'md-cookie-consent.js';
       s.onload = function () { setTimeout(dump, 1200); };
       document.head.appendChild(s);
     }
