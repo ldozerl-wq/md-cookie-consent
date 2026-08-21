@@ -366,5 +366,4 @@ python -m http.server 8777 --directory md-cookie-consent
 проекта, библиотека [vanilla-cookieconsent](https://github.com/orestbida/cookieconsent)
 v3.1.0 (MIT, © Orest Bida).
 
-Лицензия покрывает код и не является юридической консультацией: соответствие
-конкретной обработки персональных данных требованиям CNPDCP оценивается отдельно.
+Лицензия покрывает код и не является юридической консультацией — см. [NOTICE.md](NOTICE.md).

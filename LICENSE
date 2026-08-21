@@ -19,21 +19,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
----
-
-Third-party components
-
-This project loads, but does not redistribute, the following library:
-
-  vanilla-cookieconsent v3.1.0
-  Copyright (c) Orest Bida
-  Licensed under the MIT License
-  https://github.com/orestbida/cookieconsent
-
----
-
-Отдельно: лицензия распространяется на код. Она не является юридической
-консультацией и не гарантирует соответствие вашей конкретной обработки
-персональных данных Закону РМ №195/2024, Закону №284/2004 или требованиям
-CNPDCP. Правовую оценку проводите отдельно.
