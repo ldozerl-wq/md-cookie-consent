@@ -480,7 +480,7 @@
     onFirstConsent: function (p) { pushConsent(actionOf(p)); },
     onChange:       function (p) { pushConsent('change'); },
     onConsent:      function () { syncOnLoad(); },
-    onModalReady:   function () { injectFloating(); watchModal(); }
+    onModalReady:   function () { injectFloating(); watchModal(); watchDataCc(); }
   };
 
   function actionOf(p) {
@@ -542,7 +542,35 @@
     b.setAttribute('data-cc', 'show-preferencesModal');
     b.setAttribute('aria-label', txt);
     b.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><circle cx="9" cy="9.5" r="1.2" fill="currentColor" stroke="none"/><circle cx="15" cy="13" r="1.2" fill="currentColor" stroke="none"/><circle cx="10" cy="15.5" r="1.2" fill="currentColor" stroke="none"/></svg><span>' + txt + '</span>';
+
+    /* Своим обработчиком, а не только атрибутом data-cc: библиотека
+       развешивает слушатели на data-cc один раз, при run(), сканируя документ.
+       Кнопка появляется позже (onModalReady), в это сканирование не попадает
+       и с одним атрибутом остаётся мёртвой. */
+    b.addEventListener('click', function (e) {
+      e.preventDefault();
+      if (window.CookieConsent) window.CookieConsent.showPreferences();
+    });
+
     document.body.appendChild(b);
+  }
+
+  /* То же самое, но для ссылок «Настройки cookie» на самом сайте: если футер
+     рисуется скриптом после старта баннера, атрибут data-cc тоже не сработает.
+     Делегированный слушатель ловит и такие элементы. Открытие настроек
+     идемпотентно, поэтому двойная обработка со штатным слушателем безвредна. */
+  function watchDataCc() {
+    if (window.__MDCC_DATACC__) return;
+    window.__MDCC_DATACC__ = true;
+
+    document.addEventListener('click', function (e) {
+      var t = e.target;
+      if (!t || !t.closest) return;
+      var el = t.closest('[data-cc="show-preferencesModal"]');
+      if (!el || el.id === 'mdcc-fab') return;   // у кнопки свой обработчик
+      e.preventDefault();
+      if (window.CookieConsent) window.CookieConsent.showPreferences();
+    });
   }
 
   /* ==========================================================================
@@ -657,7 +685,16 @@
     s.defer = true;
     s.onload = function () {
       if (!window.CookieConsent) return;
-      window.CookieConsent.run(CC_CONFIG);
+
+      /* onModalReady срабатывает только когда модалка создаётся, а вернувшемуся
+         посетителю с сохранённым согласием её не показывают. Полагаться на него
+         в вопросе плавающей кнопки нельзя — без постоянной точки отзыва согласия
+         требование закона не выполняется. Поэтому дожимаем её и здесь;
+         injectFloating() защищён от повторной вставки. */
+      var ensureRevokeUi = function () { injectFloating(); watchDataCc(); };
+      var started = window.CookieConsent.run(CC_CONFIG);
+      if (started && typeof started.then === 'function') started.then(ensureRevokeUi);
+      else ensureRevokeUi();
 
       /* держим подпись плавающей кнопки в актуальном языке */
       var _setLang = window.CookieConsent.setLanguage;

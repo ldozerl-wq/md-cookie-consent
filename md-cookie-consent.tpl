@@ -215,7 +215,7 @@ ___TEMPLATE_PARAMETERS___
         "name": "runtimeUrl",
         "displayName": "URL файла md-cookie-consent.js",
         "simpleValueType": true,
-        "defaultValue": "https://cdn.jsdelivr.net/gh/ldozerl-wq/md-cookie-consent@v3/md-cookie-consent.js",
+        "defaultValue": "https://cdn.jsdelivr.net/gh/ldozerl-wq/md-cookie-consent@v4/md-cookie-consent.js",
         "help": "Куда вы выложили рантайм баннера. Один файл обслуживает все проекты. Домен должен быть разрешён в правах шаблона (вкладка Permissions → Injects scripts).",
         "valueValidators": [
           { "type": "NON_EMPTY" }
