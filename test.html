@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="ro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MD Cookie Consent — тестовый стенд</title>
+<style>
+  body{font:15px/1.6 system-ui,sans-serif;max-width:860px;margin:0 auto;padding:2rem 1rem 8rem;color:#1a202c}
+  h1{font-size:1.4rem} h2{font-size:1rem;margin-top:2rem}
+  pre{background:#f7fafc;border:1px solid #e2e8f0;border-radius:.4rem;padding:.75rem;overflow:auto;font-size:12px}
+  button{font:inherit;padding:.4rem .8rem;border:1px solid #cbd5e0;background:#fff;border-radius:.3rem;cursor:pointer}
+  .row{display:flex;gap:.5rem;flex-wrap:wrap;margin:.5rem 0}
+  code{background:#edf2f7;padding:.1rem .3rem;border-radius:3px}
+  .ok{color:#276749;font-weight:600} .no{color:#9b2c2c;font-weight:600}
+</style>
+</head>
+<body>
+<h1>MD Cookie Consent — тестовый стенд</h1>
+<p>Страница имитирует GTM: подгружает <code>gtm-tag-1-consent-default.html</code> и
+<code>gtm-tag-2-banner.html</code> в том же порядке и с тем же приоритетом, что в контейнере.</p>
+
+<div class="row">
+  <button onclick="MDCC.show()">Открыть настройки</button>
+  <button onclick="MDCC.reset()">Сбросить согласие</button>
+  <button onclick="CookieConsent.setLanguage('ro')">RO</button>
+  <button onclick="CookieConsent.setLanguage('ru')">RU</button>
+  <button onclick="CookieConsent.setLanguage('en')">EN</button>
+  <button onclick="dump()">Обновить отчёт</button>
+</div>
+
+<h2>Consent Mode v2 (последнее состояние)</h2>
+<pre id="cm">—</pre>
+
+<h2>Категории</h2>
+<pre id="cats">—</pre>
+
+<h2>dataLayer — события согласия</h2>
+<pre id="dl">—</pre>
+
+<h2>Журнал согласий (localStorage: mdcc_consent_log)</h2>
+<pre id="log">—</pre>
+
+<h2>Скрипт, заблокированный до согласия на analytics</h2>
+<pre id="blocked">не выполнен</pre>
+<script type="text/plain" data-category="analytics">
+  document.getElementById('blocked').textContent = 'ВЫПОЛНЕН — analytics принят';
+  document.getElementById('blocked').className = 'ok';
+</script>
+
+<script>
+  /* конфиг сайта — в GTM это переменная {{CC Config}} */
+  window.MDCC_CONFIG = {
+    privacyUrl   : '/politica-de-confidentialitate',
+    cookieUrl    : '/politica-cookie',
+    /* строки — ровно в таком виде поля TEXT шаблона GTM приходят в рантайм */
+    policyVersion: '1.0',
+    revision     : '1',
+    cookieDays   : '182',
+    defaultLang  : 'ro',
+    autoDetect   : 'document',
+    accent       : '#2b6cb0',
+    layout       : 'box wide',
+    position     : 'bottom left',
+    /* CHECKBOX шаблона отдаёт настоящий boolean */
+    floatingBtn  : true,
+    floatingSide : 'left',
+    blockPage    : false,
+    logEndpoint  : '',
+    /* ?bias=equal — проверить компромиссный вариант с равнозначными кнопками */
+    buttonBias   : (location.search.indexOf('bias=equal') > -1) ? 'equal' : 'accept-first'
+  };
+
+  function dump() {
+    var g = document.getElementById('cm');
+    var last = {};
+    (window.dataLayer || []).forEach(function (a) {
+      if (a && a[0] === 'consent') for (var k in a[2]) last[k] = a[2][k];
+    });
+    g.textContent = JSON.stringify(last, null, 2);
+
+    var cats = ['necessary','functional','analytics','marketing'].map(function (c) {
+      var ok = window.CookieConsent ? CookieConsent.acceptedCategory(c) : false;
+      return c + ': ' + (ok ? '✔ granted' : '✘ denied');
+    }).join('\n');
+    document.getElementById('cats').textContent = cats;
+
+    document.getElementById('dl').textContent = JSON.stringify(
+      (window.dataLayer || []).filter(function (e) { return e && e.event && /consent|cc_/.test(e.event); }), null, 2);
+
+    document.getElementById('log').textContent = JSON.stringify(
+      window.MDCC ? MDCC.log() : [], null, 2);
+  }
+
+  /* эмуляция порядка срабатывания тегов GTM */
+  function loadTag(file, cb) {
+    fetch(file).then(function (r) { return r.text(); }).then(function (html) {
+      var d = document.createElement('div');
+      d.innerHTML = html;
+      var codes = [].slice.call(d.querySelectorAll('script')).map(function (s) { return s.textContent; });
+      codes.forEach(function (code) {
+        var s = document.createElement('script');
+        s.textContent = code;
+        document.head.appendChild(s);
+      });
+      if (cb) cb();
+    });
+  }
+
+  /* Тег 1 / шаблон: Consent Mode default. Затем рантайм баннера.
+     По умолчанию грузим md-cookie-consent.js — это путь шаблона GTM.
+     ?inline=1 подставляет сгенерированный Custom HTML тег, чтобы проверить сборку. */
+  loadTag('gtm-tag-1-consent-default.html', function () {
+    if (location.search.indexOf('inline=1') > -1) {
+      loadTag('gtm-tag-2-banner.html', function () { setTimeout(dump, 1200); });
+    } else {
+      var s = document.createElement('script');
+      s.src = 'md-cookie-consent.js';
+      s.onload = function () { setTimeout(dump, 1200); };
+      document.head.appendChild(s);
+    }
+  });
+
+  window.dataLayer = window.dataLayer || [];
+  setInterval(dump, 2000);
+</script>
+</body>
+</html>

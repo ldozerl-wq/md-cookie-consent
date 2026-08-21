@@ -1,0 +1,616 @@
+﻿/*!
+ * MD Cookie Consent — рантайм универсального cookie-баннера для сайтов Молдовы
+ * Закон РМ №195/2024 + №284/2004, Google Consent Mode v2, RO/RU/EN.
+ * Основан на vanilla-cookieconsent v3.1.0 (Orest Bida, MIT).
+ *
+ * ЭТО ИСХОДНИК. gtm-tag-2-banner.html генерируется из него через build.ps1 —
+ * правьте только этот файл.
+ *
+ * Конфигурация читается из window.MDCC_CONFIG. Его задаёт либо шаблон тега GTM
+ * (md-cookie-consent.tpl), либо сам сайт до загрузки этого файла.
+ */
+(function () {
+  'use strict';
+
+  if (window.__MDCC_LOADED__) return;
+  window.__MDCC_LOADED__ = true;
+
+  /* ==========================================================================
+     1. КОНФИГУРАЦИЯ САЙТА
+     --------------------------------------------------------------------------
+     Значения ниже — дефолты. Всё, что задано в window.MDCC_CONFIG, их перекрывает.
+     MDCC_CONFIG выставляет шаблон тега GTM (поля в интерфейсе при добавлении тега)
+     либо сам сайт, если баннер подключается без GTM.
+     ========================================================================== */
+
+  /* Реквизиты оператора (название, адрес, e-mail) и права субъекта данных
+     баннер не показывает — они раскрываются на странице Политики Cookie,
+     ссылка на которую есть и на первом слое, и в окне настроек. */
+  var DEFAULTS = {
+    privacyUrl   : '/politica-de-confidentialitate',          // Политика конфиденциальности
+    cookieUrl    : '/politica-cookie',                        // Политика Cookie (отдельная страница!)
+    policyVersion: '1.0',                                     // версия политики
+    revision     : 1,                                         // ++ при смене политики -> пересогласие
+    defaultLang  : 'ro',                                      // ro | ru | en
+    autoDetect   : 'document',                                // 'document' (<html lang>) | 'browser' | false
+    layout       : 'box wide',                                // box | box wide | box inline | cloud | bar | bar inline
+    position     : 'bottom left',                             // 'bottom left' | 'bottom center' | 'middle center' ...
+    accent       : '#2b6cb0',                                 // цвет кнопки "Принять все"
+
+    /* Визуальный вес кнопок первого слоя:
+         'accept-first' — «Принять все» акцентная и первая, «Отказаться» серая и прижата вправо.
+                          Выше конверсия в согласие, НО непропорциональное выделение
+                          трактуется EDPB Guidelines 03/2022 как deceptive design:
+                          при проверке CNPDCP согласие может быть признано недействительным.
+         'equal'        — все кнопки одного веса (требование «отказаться не сложнее, чем согласиться»).
+                          Ставьте 'equal' для клиентов с низкой толерантностью к риску. */
+    buttonBias   : 'accept-first',
+    floatingBtn  : true,                                      // плавающая кнопка "Настройки cookie"
+    floatingSide : 'left',                                    // left | right
+    blockPage    : false,                                     // true = затемнение + блок скролла до выбора
+    cookieDays   : 182,                                       // срок хранения согласия (<= 12 мес.)
+    logEndpoint  : '',                                        // URL для серверного журнала согласий (POST, необязательно)
+    cdnBase      : 'https://cdn.jsdelivr.net/npm/vanilla-cookieconsent@3.1.0/dist/'
+  };
+
+  var C = {}, src = [DEFAULTS, (window.MDCC_CONFIG || {})];
+  for (var s = 0; s < src.length; s++)
+    for (var k in src[s])
+      if (src[s].hasOwnProperty(k) && src[s][k] !== null && src[s][k] !== undefined && src[s][k] !== '')
+        C[k] = src[s][k];
+
+  /* Поля шаблона GTM приходят строками — приводим к нужным типам */
+  C.revision   = parseInt(C.revision, 10)   || 0;
+  C.cookieDays = parseInt(C.cookieDays, 10) || 182;
+  C.floatingBtn = (C.floatingBtn === true || C.floatingBtn === 'true');
+  C.blockPage   = (C.blockPage  === true || C.blockPage  === 'true');
+  if (C.autoDetect === 'false' || C.autoDetect === false) C.autoDetect = false;
+
+  /* ==========================================================================
+     2. CONSENT MODE v2 — карта сигналов
+     ========================================================================== */
+
+  var MAP = {
+    necessary : ['security_storage'],
+    functional: ['functionality_storage', 'personalization_storage'],
+    analytics : ['analytics_storage'],
+    marketing : ['ad_storage', 'ad_user_data', 'ad_personalization']
+  };
+
+  window.dataLayer = window.dataLayer || [];
+  function gtag() { window.dataLayer.push(arguments); }
+  window.gtag = window.gtag || gtag;
+
+  function pushConsent(action) {
+    var cc = window.CookieConsent;
+    var acc = cc.getUserPreferences().acceptedCategories || [];
+    var ck  = cc.getCookie() || {};
+
+    var update = { security_storage: 'granted' };
+    for (var cat in MAP) {
+      if (!MAP.hasOwnProperty(cat)) continue;
+      var granted = (cat === 'necessary') || acc.indexOf(cat) > -1;
+      for (var i = 0; i < MAP[cat].length; i++) update[MAP[cat][i]] = granted ? 'granted' : 'denied';
+    }
+    gtag('consent', 'update', update);
+
+    var rec = {
+      consent_id           : ck.consentId || null,
+      consent_timestamp    : ck.lastConsentTimestamp || ck.consentTimestamp || new Date().toISOString(),
+      consent_language     : ck.languageCode || cc.getConfig('language').default,
+      consent_revision     : ck.revision || 0,
+      consent_policy_version: C.policyVersion,
+      consent_action       : action,                      // accept_all | reject_all | save_custom | change
+      consent_necessary    : true,
+      consent_functional   : acc.indexOf('functional') > -1,
+      consent_analytics    : acc.indexOf('analytics')  > -1,
+      consent_marketing    : acc.indexOf('marketing')  > -1
+    };
+
+    window.dataLayer.push(mergeEvt('cookie_consent_update', rec));
+
+    // отдельные события — удобно вешать триггеры GTM без Consent Checks
+    if (rec.consent_analytics)  window.dataLayer.push({ event: 'cc_analytics_granted' });
+    if (rec.consent_marketing)  window.dataLayer.push({ event: 'cc_marketing_granted' });
+    if (rec.consent_functional) window.dataLayer.push({ event: 'cc_functional_granted' });
+
+    window.__MDCC_SYNCED__ = true;   // не дублировать событие из onConsent
+    logRecord(rec);
+  }
+
+  function mergeEvt(name, obj) {
+    var o = { event: name, consent_source: 'banner' };
+    for (var k in obj) if (obj.hasOwnProperty(k)) o[k] = obj[k];
+    return o;
+  }
+
+  /* ==========================================================================
+     3. ЖУРНАЛ СОГЛАСИЙ (ст. требование: запись каждого действия, не перезапись)
+     ========================================================================== */
+
+  function logRecord(rec) {
+    // 3.1 — локальный append-only журнал (доказательство на стороне клиента)
+    try {
+      var KEY = 'mdcc_consent_log';
+      var log = JSON.parse(window.localStorage.getItem(KEY) || '[]');
+      log.push({
+        id  : rec.consent_id,
+        ts  : rec.consent_timestamp,
+        lang: rec.consent_language,
+        rev : rec.consent_revision,
+        pv  : rec.consent_policy_version,
+        act : rec.consent_action,
+        cats: ['necessary']
+                .concat(rec.consent_functional ? ['functional'] : [])
+                .concat(rec.consent_analytics  ? ['analytics']  : [])
+                .concat(rec.consent_marketing  ? ['marketing']  : []),
+        url : location.pathname
+      });
+      if (log.length > 50) log = log.slice(-50);
+      window.localStorage.setItem(KEY, JSON.stringify(log));
+    } catch (e) {}
+
+    // 3.2 — серверный журнал (если задан logEndpoint)
+    if (!C.logEndpoint) return;
+    try {
+      var body = JSON.stringify({
+        consent_id : rec.consent_id,
+        timestamp  : rec.consent_timestamp,
+        language   : rec.consent_language,
+        revision   : rec.consent_revision,
+        policy_version: rec.consent_policy_version,
+        action     : rec.consent_action,
+        categories : { necessary: true, functional: rec.consent_functional,
+                       analytics: rec.consent_analytics, marketing: rec.consent_marketing },
+        page       : location.href,
+        user_agent : navigator.userAgent
+      });
+      if (navigator.sendBeacon) navigator.sendBeacon(C.logEndpoint, new Blob([body], { type: 'application/json' }));
+      else fetch(C.logEndpoint, { method: 'POST', body: body, headers: { 'Content-Type': 'application/json' }, keepalive: true });
+    } catch (e) {}
+  }
+
+  /* ==========================================================================
+     4. ПЕРЕВОДЫ (RO / RU / EN)
+     ========================================================================== */
+
+  function links(t) {
+    var a = [];
+    if (C.cookieUrl)  a.push('<a href="' + C.cookieUrl  + '">' + t.cookiePolicy  + '</a>');
+    if (C.privacyUrl) a.push('<a href="' + C.privacyUrl + '">' + t.privacyPolicy + '</a>');
+    return a.join(' · ');
+  }
+
+  function tables(t) {
+    return {
+      analytics: {
+        headers: { name: t.h_name, domain: t.h_domain, desc: t.h_desc, exp: t.h_exp },
+        body: [
+          { name: '_ga, _ga_*', domain: 'Google Analytics', desc: t.d_ga,      exp: t.e_2y },
+          { name: '_gid',       domain: 'Google Analytics', desc: t.d_gid,     exp: t.e_24h },
+          { name: '_clck, _clsk', domain: 'Microsoft Clarity', desc: t.d_clarity, exp: t.e_1y }
+        ]
+      },
+      marketing: {
+        headers: { name: t.h_name, domain: t.h_domain, desc: t.h_desc, exp: t.h_exp },
+        body: [
+          { name: '_fbp, _fbc', domain: 'Meta (Facebook)', desc: t.d_fbp, exp: t.e_3m },
+          { name: '_gcl_*',     domain: 'Google Ads',      desc: t.d_gcl, exp: t.e_3m },
+          { name: 'IDE, test_cookie', domain: 'doubleclick.net', desc: t.d_ide, exp: t.e_1y },
+          { name: '_ttp',       domain: 'TikTok',          desc: t.d_ttp, exp: t.e_1y }
+        ]
+      },
+      functional: {
+        headers: { name: t.h_name, domain: t.h_domain, desc: t.h_desc, exp: t.h_exp },
+        body: [
+          { name: 'YSC, VISITOR_INFO1_LIVE', domain: 'YouTube', desc: t.d_yt, exp: t.e_6m },
+          { name: 'lang, locale', domain: location.hostname, desc: t.d_lang, exp: t.e_1y }
+        ]
+      },
+      necessary: {
+        headers: { name: t.h_name, domain: t.h_domain, desc: t.h_desc, exp: t.h_exp },
+        body: [
+          { name: 'cc_cookie', domain: location.hostname, desc: t.d_cc, exp: C.cookieDays + ' ' + t.days },
+          { name: 'PHPSESSID / session', domain: location.hostname, desc: t.d_sess, exp: t.e_session }
+        ]
+      }
+    };
+  }
+
+  var T = {};
+
+  T.ro = (function () {
+    var t = {
+      cookiePolicy:'Politica Cookie', privacyPolicy:'Politica de confidențialitate',
+      days:'zile',
+      h_name:'Cookie', h_domain:'Furnizor', h_desc:'Scop', h_exp:'Durată',
+      e_2y:'2 ani', e_1y:'1 an', e_6m:'6 luni', e_3m:'3 luni', e_24h:'24 ore', e_session:'Sesiune',
+      d_ga:'Identifică vizitatorul pentru statistici agregate de trafic.',
+      d_gid:'Distinge vizitatorii în cadrul unei zile.',
+      d_clarity:'Hărți de căldură și înregistrări de sesiune anonimizate.',
+      d_fbp:'Măsoară eficiența reclamelor și permite remarketing.',
+      d_gcl:'Atribuie conversiile campaniilor Google Ads.',
+      d_ide:'Afișează reclame relevante pe alte site-uri.',
+      d_ttp:'Măsurarea conversiilor TikTok Ads.',
+      d_yt:'Redarea videoclipurilor YouTube încorporate.',
+      d_lang:'Reține limba și preferințele de afișare.',
+      d_cc:'Stochează alegerea dumneavoastră privind cookie-urile.',
+      d_sess:'Menține sesiunea, coșul și autentificarea.'
+    };
+    return {
+      consentModal: {
+        title: 'Respectăm confidențialitatea dumneavoastră',
+        description: 'Folosim cookie-uri strict necesare pentru funcționarea site-ului. Cookie-urile de analiză, marketing și funcționale sunt activate <strong>doar cu acordul dumneavoastră</strong>. Puteți accepta toate, respinge toate cele neesențiale sau alege individual. Vă puteți retrage consimțământul oricând.',
+        acceptAllBtn: 'Accept toate',
+        acceptNecessaryBtn: 'Refuz toate',
+        showPreferencesBtn: 'Setări individuale',
+        footer: links(t)
+      },
+      preferencesModal: {
+        title: 'Preferințe privind cookie-urile',
+        acceptAllBtn: 'Accept toate',
+        acceptNecessaryBtn: 'Refuz toate',
+        savePreferencesBtn: 'Salvez preferințele',
+        closeIconLabel: 'Închide',
+        serviceCounterLabel: 'Serviciu|Servicii',
+        sections: [
+          { title: 'Cum folosim cookie-urile',
+            description: 'Cookie-urile sunt fișiere mici stocate pe dispozitivul dumneavoastră. Mai jos puteți activa sau dezactiva fiecare categorie separat. Refuzul este la fel de simplu ca acceptarea și nu afectează funcțiile de bază ale site-ului.<p>' + links(t) + '</p>' },
+          { title: 'Strict necesare <span class="pm__badge">Mereu active</span>',
+            description: 'Asigură funcționarea site-ului: securitate, sesiune, coș de cumpărături, memorarea alegerii dumneavoastră privind cookie-urile. Temei legal: interesul legitim / executarea contractului. Nu pot fi dezactivate.',
+            linkedCategory: 'necessary', cookieTable: tables(t).necessary },
+          { title: 'Funcționale',
+            description: 'Rețin preferințe (limbă, regiune, valută) și permit conținut încorporat: hărți, video, chat. Temei legal: consimțământul dumneavoastră.',
+            linkedCategory: 'functional', cookieTable: tables(t).functional },
+          { title: 'Analiză și statistică',
+            description: 'Ne ajută să înțelegem cum este folosit site-ul (pagini vizitate, erori, sursa traficului), în formă agregată. Temei legal: consimțământul dumneavoastră.',
+            linkedCategory: 'analytics', cookieTable: tables(t).analytics },
+          { title: 'Marketing și publicitate',
+            description: 'Permit măsurarea campaniilor și afișarea de reclame relevante pe acest site și pe platforme terțe. Pot implica transfer de date către furnizori din afara Republicii Moldova, pe bază de clauze contractuale standard.',
+            linkedCategory: 'marketing', cookieTable: tables(t).marketing }
+        ]
+      }
+    };
+  })();
+
+  T.ru = (function () {
+    var t = {
+      cookiePolicy:'Политика Cookie', privacyPolicy:'Политика конфиденциальности',
+      days:'дн.',
+      h_name:'Cookie', h_domain:'Поставщик', h_desc:'Назначение', h_exp:'Срок',
+      e_2y:'2 года', e_1y:'1 год', e_6m:'6 месяцев', e_3m:'3 месяца', e_24h:'24 часа', e_session:'Сессия',
+      d_ga:'Идентифицирует посетителя для агрегированной статистики.',
+      d_gid:'Различает посетителей в пределах суток.',
+      d_clarity:'Тепловые карты и обезличенные записи сессий.',
+      d_fbp:'Измерение эффективности рекламы и ремаркетинг.',
+      d_gcl:'Атрибуция конверсий кампаниям Google Ads.',
+      d_ide:'Показ релевантной рекламы на других сайтах.',
+      d_ttp:'Измерение конверсий TikTok Ads.',
+      d_yt:'Воспроизведение встроенных видео YouTube.',
+      d_lang:'Запоминает язык и настройки отображения.',
+      d_cc:'Хранит ваш выбор в отношении cookie-файлов.',
+      d_sess:'Поддерживает сессию, корзину и авторизацию.'
+    };
+    return {
+      consentModal: {
+        title: 'Мы уважаем вашу конфиденциальность',
+        description: 'Мы используем строго необходимые cookie-файлы для работы сайта. Аналитические, маркетинговые и функциональные cookie включаются <strong>только с вашего согласия</strong>. Вы можете принять все, отклонить все необязательные или настроить каждую категорию отдельно. Согласие можно отозвать в любой момент.',
+        acceptAllBtn: 'Принять все',
+        acceptNecessaryBtn: 'Отклонить все',
+        showPreferencesBtn: 'Настроить',
+        footer: links(t)
+      },
+      preferencesModal: {
+        title: 'Настройки cookie-файлов',
+        acceptAllBtn: 'Принять все',
+        acceptNecessaryBtn: 'Отклонить все',
+        savePreferencesBtn: 'Сохранить выбор',
+        closeIconLabel: 'Закрыть',
+        serviceCounterLabel: 'Сервис|Сервиса|Сервисов',
+        sections: [
+          { title: 'Как мы используем cookie',
+            description: 'Cookie — небольшие файлы, сохраняемые на вашем устройстве. Ниже вы можете включить или отключить каждую категорию отдельно. Отказаться не сложнее, чем согласиться, и это не влияет на базовые функции сайта.<p>' + links(t) + '</p>' },
+          { title: 'Строго необходимые <span class="pm__badge">Всегда активны</span>',
+            description: 'Обеспечивают работу сайта: безопасность, сессия, корзина, сохранение вашего выбора по cookie. Правовое основание: законный интерес / исполнение договора. Отключить нельзя.',
+            linkedCategory: 'necessary', cookieTable: tables(t).necessary },
+          { title: 'Функциональные',
+            description: 'Запоминают предпочтения (язык, регион, валюта) и позволяют встраивать контент: карты, видео, чат. Правовое основание: ваше согласие.',
+            linkedCategory: 'functional', cookieTable: tables(t).functional },
+          { title: 'Аналитика и статистика',
+            description: 'Помогают понять, как используется сайт (посещённые страницы, ошибки, источники трафика) в агрегированном виде. Правовое основание: ваше согласие.',
+            linkedCategory: 'analytics', cookieTable: tables(t).analytics },
+          { title: 'Маркетинг и реклама',
+            description: 'Позволяют измерять эффективность кампаний и показывать релевантную рекламу на этом сайте и сторонних платформах. Может включать передачу данных поставщикам за пределы Республики Молдова на основании стандартных договорных положений.',
+            linkedCategory: 'marketing', cookieTable: tables(t).marketing }
+        ]
+      }
+    };
+  })();
+
+  T.en = (function () {
+    var t = {
+      cookiePolicy:'Cookie Policy', privacyPolicy:'Privacy Policy',
+      days:'days',
+      h_name:'Cookie', h_domain:'Provider', h_desc:'Purpose', h_exp:'Retention',
+      e_2y:'2 years', e_1y:'1 year', e_6m:'6 months', e_3m:'3 months', e_24h:'24 hours', e_session:'Session',
+      d_ga:'Identifies the visitor for aggregated traffic statistics.',
+      d_gid:'Distinguishes visitors within a single day.',
+      d_clarity:'Heatmaps and anonymised session recordings.',
+      d_fbp:'Measures ad performance and enables remarketing.',
+      d_gcl:'Attributes conversions to Google Ads campaigns.',
+      d_ide:'Serves relevant ads on third-party sites.',
+      d_ttp:'TikTok Ads conversion measurement.',
+      d_yt:'Playback of embedded YouTube videos.',
+      d_lang:'Stores language and display preferences.',
+      d_cc:'Stores your cookie choice.',
+      d_sess:'Maintains session, cart and login.'
+    };
+    return {
+      consentModal: {
+        title: 'We respect your privacy',
+        description: 'We use strictly necessary cookies to run this site. Analytics, marketing and functional cookies are enabled <strong>only with your consent</strong>. You can accept all, reject all non-essential cookies, or choose per category. You may withdraw consent at any time.',
+        acceptAllBtn: 'Accept all',
+        acceptNecessaryBtn: 'Reject all',
+        showPreferencesBtn: 'Manage preferences',
+        footer: links(t)
+      },
+      preferencesModal: {
+        title: 'Cookie preferences',
+        acceptAllBtn: 'Accept all',
+        acceptNecessaryBtn: 'Reject all',
+        savePreferencesBtn: 'Save preferences',
+        closeIconLabel: 'Close',
+        serviceCounterLabel: 'Service|Services',
+        sections: [
+          { title: 'How we use cookies',
+            description: 'Cookies are small files stored on your device. Below you can enable or disable each category separately. Refusing is as easy as accepting and does not affect core site functionality.<p>' + links(t) + '</p>' },
+          { title: 'Strictly necessary <span class="pm__badge">Always on</span>',
+            description: 'Required for the site to work: security, session, cart, and storing your cookie choice. Legal basis: legitimate interest / contract performance. Cannot be disabled.',
+            linkedCategory: 'necessary', cookieTable: tables(t).necessary },
+          { title: 'Functional',
+            description: 'Remember preferences (language, region, currency) and enable embedded content: maps, video, chat. Legal basis: your consent.',
+            linkedCategory: 'functional', cookieTable: tables(t).functional },
+          { title: 'Analytics',
+            description: 'Help us understand how the site is used (pages viewed, errors, traffic sources) in aggregated form. Legal basis: your consent.',
+            linkedCategory: 'analytics', cookieTable: tables(t).analytics },
+          { title: 'Marketing',
+            description: 'Allow campaign measurement and relevant advertising on this site and third-party platforms. May involve transfers to providers outside the Republic of Moldova under standard contractual clauses.',
+            linkedCategory: 'marketing', cookieTable: tables(t).marketing }
+        ]
+      }
+    };
+  })();
+
+  /* ==========================================================================
+     5. КОНФИГ CookieConsent v3
+     ========================================================================== */
+
+  var CC_CONFIG = {
+    root: document.body,
+    mode: 'opt-in',                 // ничего не грузим до согласия
+    autoShow: true,
+    revision: C.revision,
+    manageScriptTags: true,
+    autoClearCookies: true,
+    hideFromBots: true,
+    lazyHtmlGeneration: true,
+    disablePageInteraction: !!C.blockPage,
+
+    cookie: {
+      name: 'cc_cookie',
+      path: '/',
+      sameSite: 'Lax',
+      secure: location.protocol === 'https:',
+      expiresAfterDays: function (acceptType) {
+        return acceptType === 'necessary' ? 182 : C.cookieDays;
+      }
+    },
+
+    guiOptions: {
+      consentModal: {
+        layout: C.layout,
+        position: C.position,
+        equalWeightButtons: C.buttonBias === 'equal',
+        flipButtons: false
+      },
+      preferencesModal: {
+        layout: 'box',
+        position: 'right',
+        equalWeightButtons: C.buttonBias === 'equal',
+        flipButtons: false
+      }
+    },
+
+    categories: {
+      necessary: { enabled: true, readOnly: true },
+
+      functional: {
+        enabled: false, readOnly: false,
+        autoClear: { reloadPage: false, cookies: [
+          { name: /^YSC/ }, { name: /^VISITOR_INFO1_LIVE/ }, { name: /^__Secure-YEC/ },
+          { name: /^wp-settings/ }, { name: /^lang$/ }, { name: /^locale$/ }
+        ]}
+      },
+
+      analytics: {
+        enabled: false, readOnly: false,
+        autoClear: { reloadPage: false, cookies: [
+          { name: /^_ga/ }, { name: /^_gid/ }, { name: /^_gat/ }, { name: /^_dc_gtm/ },
+          { name: /^_clck/ }, { name: /^_clsk/ }, { name: /^CLID/ },
+          { name: /^_ym_/ }, { name: /^yandexuid/ },
+          { name: /^_hj/ }, { name: /^_pk_/ }
+        ]}
+      },
+
+      marketing: {
+        enabled: false, readOnly: false,
+        autoClear: { reloadPage: false, cookies: [
+          { name: /^_fbp/ }, { name: /^_fbc/ }, { name: /^fr$/ },
+          { name: /^_gcl_/ }, { name: /^IDE$/, domain: '.doubleclick.net' }, { name: /^test_cookie/ },
+          { name: /^_ttp/ }, { name: /^_tt_enable_cookie/ },
+          { name: /^_uetsid/ }, { name: /^_uetvid/ },
+          { name: /^li_sugr/ }, { name: /^UserMatchHistory/ }, { name: /^bcookie/ }, { name: /^lidc/ },
+          { name: /^_pin_unauth/ }, { name: /^_scid/ }, { name: /^_rdt_uuid/ }
+        ]}
+      }
+    },
+
+    language: {
+      default: C.defaultLang,
+      autoDetect: C.autoDetect || undefined,
+      translations: { ro: T.ro, ru: T.ru, en: T.en, mo: T.ro, md: T.ro }
+    },
+
+    onFirstConsent: function (p) { pushConsent(actionOf(p)); },
+    onChange:       function (p) { pushConsent('change'); },
+    onConsent:      function () { syncOnLoad(); },
+    onModalReady:   function () { injectFloating(); }
+  };
+
+  function actionOf(p) {
+    var acc = (p && p.cookie && p.cookie.categories) || [];
+    if (acc.length >= 4) return 'accept_all';
+    if (acc.length <= 1) return 'reject_all';
+    return 'save_custom';
+  }
+
+  /* Тег 1 уже отправил consent update для вернувшихся пользователей.
+     Здесь дублируем только если Тега 1 нет (например, скрипт вставлен напрямую в сайт). */
+  function syncOnLoad() {
+    if (window.__MDCC_SYNCED__) return;
+    window.__MDCC_SYNCED__ = true;
+    var already = false;
+    for (var i = 0; i < window.dataLayer.length; i++) {
+      var e = window.dataLayer[i];
+      if (e && e.event === 'cookie_consent_update' && e.consent_source === 'stored') { already = true; break; }
+    }
+    if (!already) pushConsent('restore');
+  }
+
+  /* ==========================================================================
+     6. ПЛАВАЮЩАЯ КНОПКА "Настройки cookie" (постоянный отзыв согласия)
+     ========================================================================== */
+
+  var FAB_LABELS = { ro: 'Setări cookie', ru: 'Настройки cookie', en: 'Cookie settings' };
+
+  function normLang(l) {
+    l = (l || '').slice(0, 2).toLowerCase();
+    if (l === 'mo' || l === 'md') l = 'ro';
+    return FAB_LABELS[l] ? l : null;
+  }
+
+  function currentLang() {
+    var ck = (window.CookieConsent && window.CookieConsent.getCookie()) || {};
+    return normLang(ck.languageCode)
+        || (C.autoDetect === 'document' ? normLang(document.documentElement.lang) : null)
+        || (C.autoDetect === 'browser'  ? normLang(navigator.language) : null)
+        || normLang(C.defaultLang)
+        || 'ro';
+  }
+
+  function updateFabLabel(lang) {
+    var b = document.getElementById('mdcc-fab');
+    if (!b) return;
+    var txt = FAB_LABELS[normLang(lang) || currentLang()];
+    b.setAttribute('aria-label', txt);
+    var sp = b.querySelector('span');
+    if (sp) sp.textContent = txt;
+  }
+
+  function injectFloating() {
+    if (!C.floatingBtn || document.getElementById('mdcc-fab')) return;
+    var txt = FAB_LABELS[currentLang()];
+    var b = document.createElement('button');
+    b.id = 'mdcc-fab';
+    b.type = 'button';
+    b.setAttribute('data-cc', 'show-preferencesModal');
+    b.setAttribute('aria-label', txt);
+    b.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><circle cx="9" cy="9.5" r="1.2" fill="currentColor" stroke="none"/><circle cx="15" cy="13" r="1.2" fill="currentColor" stroke="none"/><circle cx="10" cy="15.5" r="1.2" fill="currentColor" stroke="none"/></svg><span>' + txt + '</span>';
+    document.body.appendChild(b);
+  }
+
+  /* ==========================================================================
+     7. СТИЛИ: тема + плавающая кнопка
+     ========================================================================== */
+
+  function injectStyles() {
+    var css = document.createElement('style');
+    css.id = 'mdcc-style';
+    css.textContent =
+      '#cc-main{--cc-btn-primary-bg:' + C.accent + ';--cc-btn-primary-border-color:' + C.accent + ';' +
+      '--cc-btn-primary-hover-bg:#1a4e85;--cc-btn-primary-hover-border-color:#1a4e85;' +
+      '--cc-toggle-on-bg:' + C.accent + ';--cc-font-family:inherit;--cc-modal-border-radius:.6rem;--cc-z-index:2147483000}' +
+      '#cc-main .cm__btn,#cc-main .pm__btn{font-weight:600}' +
+
+      (C.buttonBias === 'accept-first' ? (
+        /* горизонтальный ряд: [Принять все] [Отказаться] ......... [Настройки]
+           Это родной порядок узлов CookieConsent — DOM не трогаем,
+           поэтому обход по Tab совпадает с визуальным порядком сам собой. */
+        '#cc-main .cm__btns{display:flex;flex-direction:row;flex-wrap:wrap;align-items:center;' +
+        'justify-content:space-between;gap:.5rem}' +
+        '#cc-main .cm__btn-group{display:flex;flex-direction:row;gap:.5rem;width:auto;flex:0 1 auto}' +
+        '#cc-main .cm__btn{width:auto;flex:0 1 auto}' +
+        /* акцент на согласии */
+        '#cc-main .cm__btn[data-role="all"]{background:' + C.accent + ';border-color:' + C.accent + ';color:#fff}' +
+        /* приглушённый отказ. Серый выбран AA-контрастный (5.5:1) —
+           нечитаемая кнопка добавила бы к риску по данным ещё и нарушение доступности. */
+        '#cc-main .cm__btn[data-role="necessary"],#cc-main .pm__btn[data-role="necessary"]' +
+        '{background:#f1f3f5;border-color:#dee2e6;color:#5c636a;font-weight:500}' +
+        '#cc-main .cm__btn[data-role="necessary"]:hover,#cc-main .pm__btn[data-role="necessary"]:hover' +
+        '{background:#e9ecef;border-color:#ced4da;color:#495057}' +
+        /* на мобильном ряд рассыпается в столбец: принять / отказаться / настройки */
+        '@media(max-width:640px){#cc-main .cm__btns{flex-direction:column;align-items:stretch}' +
+        '#cc-main .cm__btn-group,#cc-main .cm__btn{width:100%}}'
+      ) : '') +
+
+      '#mdcc-fab{position:fixed;bottom:16px;' + (C.floatingSide === 'right' ? 'right' : 'left') + ':16px;' +
+      'z-index:2147482000;display:inline-flex;align-items:center;gap:.45rem;padding:.5rem .75rem;' +
+      'font:600 13px/1.2 inherit;color:#fff;background:' + C.accent + ';border:0;border-radius:999px;' +
+      'cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.25);opacity:.9;transition:opacity .2s,transform .2s}' +
+      '#mdcc-fab:hover{opacity:1;transform:translateY(-1px)}' +
+      '#mdcc-fab:focus-visible{outline:2px solid #fff;outline-offset:2px}' +
+      '@media(max-width:480px){#mdcc-fab span{display:none}#mdcc-fab{padding:.55rem}}' +
+      '@media(prefers-reduced-motion:reduce){#mdcc-fab{transition:none}}';
+    document.head.appendChild(css);
+  }
+
+  /* ==========================================================================
+     8. ЗАГРУЗКА БИБЛИОТЕКИ И СТАРТ
+     ========================================================================== */
+
+  function boot() {
+    var link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = C.cdnBase + 'cookieconsent.css';
+    document.head.appendChild(link);
+
+    injectStyles();
+
+    var s = document.createElement('script');
+    s.src = C.cdnBase + 'cookieconsent.umd.js';
+    s.defer = true;
+    s.onload = function () {
+      if (!window.CookieConsent) return;
+      window.CookieConsent.run(CC_CONFIG);
+
+      /* держим подпись плавающей кнопки в актуальном языке */
+      var _setLang = window.CookieConsent.setLanguage;
+      window.CookieConsent.setLanguage = function (lang, force) {
+        var r = _setLang.call(window.CookieConsent, lang, force);
+        updateFabLabel(lang);
+        return r;
+      };
+
+      window.MDCC = {
+        show:  function () { window.CookieConsent.showPreferences(); },
+        reset: function () { window.CookieConsent.reset(true); location.reload(); },
+        log:   function () { try { return JSON.parse(localStorage.getItem('mdcc_consent_log') || '[]'); } catch (e) { return []; } },
+        accepted: function (cat) { return window.CookieConsent.acceptedCategory(cat); }
+      };
+    };
+    document.head.appendChild(s);
+  }
+
+  if (document.body) boot();
+  else document.addEventListener('DOMContentLoaded', boot);
+})();

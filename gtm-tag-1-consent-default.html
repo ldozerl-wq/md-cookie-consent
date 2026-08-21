@@ -1,0 +1,100 @@
+<!--
+  ============================================================================
+  MD-CC · TAG 1 of 2 — "Consent Mode v2 — Default (MD/GDPR)"
+  ----------------------------------------------------------------------------
+  GTM: Custom HTML tag
+  Trigger:  Consent Initialization – All Pages   <-- ОБЯЗАТЕЛЬНО именно этот
+  Tag firing priority: 1000 (выше всех остальных тегов)
+  "Fire a tag once per page" — не включать.
+  ----------------------------------------------------------------------------
+  Что делает:
+   1. Синхронно ставит Google Consent Mode v2 в состояние DENIED — до того,
+      как GTM успеет запустить GA4 / Ads / Floodlight / Meta и т.д.
+   2. Если посетитель уже давал согласие (cookie cc_cookie) — сразу же шлёт
+      consent update, чтобы вернувшийся пользователь не терял 500 мс и не
+      получал урезанные хиты.
+   3. Включает ads_data_redaction + url_passthrough.
+  ============================================================================
+-->
+<script>
+(function () {
+  'use strict';
+
+  /* Настройки проекта. Раскомментируйте, если завели переменную {{CC Config}}
+     (см. gtm-variable-cc-config.js). Этот тег срабатывает раньше Тега 2,
+     поэтому баннер успеет прочитать конфиг. */
+  // window.MDCC_CONFIG = {{CC Config}};
+
+  var COOKIE_NAME = 'cc_cookie';       // должен совпадать с Тегом 2
+  var STORAGE_KEY = 'cc_cookie';       // если в Теге 2 включён useLocalStorage
+
+  /* -------- Consent Mode v2: сигналы <- категории баннера ---------------- */
+  var MAP = {
+    necessary : ['security_storage'],
+    functional: ['functionality_storage', 'personalization_storage'],
+    analytics : ['analytics_storage'],
+    marketing : ['ad_storage', 'ad_user_data', 'ad_personalization']
+  };
+
+  window.dataLayer = window.dataLayer || [];
+  function gtag() { window.dataLayer.push(arguments); }
+  window.gtag = window.gtag || gtag;
+
+  /* -------- 1. Дефолт: всё запрещено ------------------------------------ */
+  gtag('consent', 'default', {
+    ad_storage            : 'denied',
+    ad_user_data          : 'denied',
+    ad_personalization    : 'denied',
+    analytics_storage     : 'denied',
+    functionality_storage : 'denied',
+    personalization_storage: 'denied',
+    security_storage      : 'granted',   // строго необходимые — всегда granted
+    wait_for_update       : 500
+  });
+
+  gtag('set', 'ads_data_redaction', true);
+  gtag('set', 'url_passthrough', true);
+
+  /* -------- 2. Уже есть сохранённое согласие? — сразу update ------------- */
+  function readStored() {
+    try {
+      var raw = null;
+      var m = document.cookie.match('(^|;)\\s*' + COOKIE_NAME + '\\s*=\\s*([^;]+)');
+      if (m) raw = decodeURIComponent(m[2]);
+      if (!raw && window.localStorage) raw = window.localStorage.getItem(STORAGE_KEY);
+      if (!raw) return null;
+      var obj = JSON.parse(raw);
+      return (obj && obj.categories) ? obj : null;
+    } catch (e) { return null; }
+  }
+
+  var stored = readStored();
+  if (stored) {
+    var accepted = stored.categories || [];
+    var update = {};
+    for (var cat in MAP) {
+      if (!MAP.hasOwnProperty(cat)) continue;
+      var granted = (cat === 'necessary') || accepted.indexOf(cat) > -1;
+      for (var i = 0; i < MAP[cat].length; i++) {
+        update[MAP[cat][i]] = granted ? 'granted' : 'denied';
+      }
+    }
+    update.security_storage = 'granted';
+    gtag('consent', 'update', update);
+
+    /* дублируем в dataLayer, чтобы триггеры GTM могли сработать сразу */
+    window.dataLayer.push({
+      event                : 'cookie_consent_update',
+      consent_source       : 'stored',
+      consent_action       : 'restore',
+      consent_id           : stored.consentId || null,
+      consent_language     : stored.languageCode || null,
+      consent_revision     : stored.revision || 0,
+      consent_necessary    : true,
+      consent_functional   : accepted.indexOf('functional') > -1,
+      consent_analytics    : accepted.indexOf('analytics')  > -1,
+      consent_marketing    : accepted.indexOf('marketing')  > -1
+    });
+  }
+})();
+</script>
