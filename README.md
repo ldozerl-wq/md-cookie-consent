@@ -357,3 +357,14 @@ python -m http.server 8777 --directory md-cookie-consent
 
 Рантайм ничего не грузит до `DOMContentLoaded` и не блокирует рендер (`defer`),
 вес — ~30 КБ gzip.
+
+---
+
+## Лицензия
+
+[MIT](LICENSE) © 2026 Freemoldova. Используется, но не распространяется в составе
+проекта, библиотека [vanilla-cookieconsent](https://github.com/orestbida/cookieconsent)
+v3.1.0 (MIT, © Orest Bida).
+
+Лицензия покрывает код и не является юридической консультацией: соответствие
+конкретной обработки персональных данных требованиям CNPDCP оценивается отдельно.
