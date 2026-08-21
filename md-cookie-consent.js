@@ -464,7 +464,7 @@
     onFirstConsent: function (p) { pushConsent(actionOf(p)); },
     onChange:       function (p) { pushConsent('change'); },
     onConsent:      function () { syncOnLoad(); },
-    onModalReady:   function () { injectFloating(); }
+    onModalReady:   function () { injectFloating(); watchModal(); }
   };
 
   function actionOf(p) {
@@ -530,6 +530,56 @@
   }
 
   /* ==========================================================================
+     6b. ПОРЯДОК КНОПОК ПЕРВОГО СЛОЯ (buttonBias: 'accept-first')
+     --------------------------------------------------------------------------
+     Родной порядок CookieConsent:  [Принять] [Отказаться] ... [Настройки]
+     Нужный нам:                    [Настройки] [Отказаться] ... [Принять]
+
+     Меняем местами узлы «Принять» и «Настройки» именно в DOM, а не через
+     CSS order — иначе обход по Tab разойдётся с визуальным порядком.
+     Цвета привязаны к data-role, а не к позиции, поэтому кнопки сохраняют
+     своё оформление после переноса.
+     ========================================================================== */
+
+  function biasButtons() {
+    if (C.buttonBias !== 'accept-first') return;
+    var btns = document.querySelector('#cc-main .cm__btns');
+    if (!btns || btns.hasAttribute('data-mdcc-biased')) return;
+
+    var accept = btns.querySelector('.cm__btn[data-role="all"]');
+    var show   = btns.querySelector('.cm__btn[data-role="show"]');
+    if (!accept || !show) return;
+
+    var acceptParent = accept.parentNode, acceptNext = accept.nextSibling;
+    var showParent   = show.parentNode,   showNext   = show.nextSibling;
+
+    showParent.insertBefore(accept, showNext);      // «Принять» -> к правому краю
+    acceptParent.insertBefore(show, acceptNext);    // «Настройки» -> в начало ряда
+
+    btns.setAttribute('data-mdcc-biased', '');
+  }
+
+  /* CookieConsent пересобирает модалку при setLanguage и повторном показе,
+     а onModalReady при этом не вызывается — держим наблюдателя. */
+  function watchModal() {
+    if (C.buttonBias !== 'accept-first' || window.__MDCC_OBSERVER__ || !window.MutationObserver) return;
+
+    var main = document.getElementById('cc-main');
+    if (main) {
+      window.__MDCC_OBSERVER__ = new MutationObserver(function () { biasButtons(); });
+      window.__MDCC_OBSERVER__.observe(main, { childList: true, subtree: true });
+      biasButtons();
+      return;
+    }
+
+    /* onModalReady срабатывает до вставки #cc-main в body — ждём появления */
+    var boot = new MutationObserver(function () {
+      if (document.getElementById('cc-main')) { boot.disconnect(); watchModal(); }
+    });
+    boot.observe(document.body, { childList: true });
+  }
+
+  /* ==========================================================================
      7. СТИЛИ: тема + плавающая кнопка
      ========================================================================== */
 
@@ -543,9 +593,8 @@
       '#cc-main .cm__btn,#cc-main .pm__btn{font-weight:600}' +
 
       (C.buttonBias === 'accept-first' ? (
-        /* горизонтальный ряд: [Принять все] [Отказаться] ......... [Настройки]
-           Это родной порядок узлов CookieConsent — DOM не трогаем,
-           поэтому обход по Tab совпадает с визуальным порядком сам собой. */
+        /* горизонтальный ряд: [Настройки] [Отказаться] ......... [Принять все]
+           Порядок узлов переставляет biasButtons() (см. раздел 6b). */
         '#cc-main .cm__btns{display:flex;flex-direction:row;flex-wrap:wrap;align-items:center;' +
         'justify-content:space-between;gap:.5rem}' +
         '#cc-main .cm__btn-group{display:flex;flex-direction:row;gap:.5rem;width:auto;flex:0 1 auto}' +
@@ -558,7 +607,8 @@
         '{background:#f1f3f5;border-color:#dee2e6;color:#5c636a;font-weight:500}' +
         '#cc-main .cm__btn[data-role="necessary"]:hover,#cc-main .pm__btn[data-role="necessary"]:hover' +
         '{background:#e9ecef;border-color:#ced4da;color:#495057}' +
-        /* на мобильном ряд рассыпается в столбец: принять / отказаться / настройки */
+        /* на мобильном ряд рассыпается в столбец: настройки / отказаться / принять.
+           «Принять» оказывается внизу — ближе всего к большому пальцу. */
         '@media(max-width:640px){#cc-main .cm__btns{flex-direction:column;align-items:stretch}' +
         '#cc-main .cm__btn-group,#cc-main .cm__btn{width:100%}}'
       ) : '') +
