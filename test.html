@@ -49,6 +49,11 @@
 
 <script>
   /* конфиг сайта — в GTM это переменная {{CC Config}} */
+  /* ?lang=ru-RU — подменить <html lang> до старта рантайма. На реальных сайтах
+     регион в коде языка обычное дело, и раньше он ломал определение языка. */
+  var langParam = (location.search.match(/[?&]lang=([\w-]+)/) || [])[1];
+  if (langParam) document.documentElement.lang = langParam;
+
   window.MDCC_CONFIG = {
     privacyUrl   : '/politica-de-confidentialitate',
     /* строки — ровно в таком виде поля TEXT шаблона GTM приходят в рантайм */
@@ -115,7 +120,7 @@
       var s = document.createElement('script');
       /* ?cdn=1 — грузить рантайм с jsDelivr, ровно как это делает шаблон GTM */
       s.src = (location.search.indexOf('cdn=1') > -1)
-        ? 'https://cdn.jsdelivr.net/gh/ldozerl-wq/md-cookie-consent@v4/md-cookie-consent.js'
+        ? 'https://cdn.jsdelivr.net/gh/ldozerl-wq/md-cookie-consent@v5/md-cookie-consent.js'
         : 'md-cookie-consent.js';
       s.onload = function () { setTimeout(dump, 1200); };
       document.head.appendChild(s);

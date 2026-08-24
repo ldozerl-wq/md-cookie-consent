@@ -490,7 +490,7 @@
     onFirstConsent: function (p) { pushConsent(actionOf(p)); },
     onChange:       function (p) { pushConsent('change'); },
     onConsent:      function () { syncOnLoad(); },
-    onModalReady:   function () { injectFloating(); watchModal(); watchDataCc(); }
+    onModalReady:   function () { injectFloating(); watchModal(); watchDataCc(); watchDocumentLang(); }
   };
 
   function actionOf(p) {
@@ -525,13 +525,36 @@
     return FAB_LABELS[l] ? l : null;
   }
 
+  /* Язык страницы важнее языка, на котором когда-то дали согласие: посетитель
+     мог согласиться на русской версии, а сейчас читает румынскую. Сама библиотека
+     при autoDetect ведёт себя именно так — подпись кнопки не должна расходиться
+     с баннером. Сохранённый в cookie код остаётся запасным вариантом на случай
+     autoDetect: false. */
   function currentLang() {
     var ck = (window.CookieConsent && window.CookieConsent.getCookie()) || {};
-    return normLang(ck.languageCode)
-        || (C.autoDetect === 'document' ? normLang(document.documentElement.lang) : null)
+    return (C.autoDetect === 'document' ? normLang(document.documentElement.lang) : null)
         || (C.autoDetect === 'browser'  ? normLang(navigator.language) : null)
+        || normLang(ck.languageCode)
         || normLang(C.defaultLang)
         || 'ro';
+  }
+
+  /* Сайт может дорисовать <html lang> скриптом или менять его на лету
+     (SPA, переключатель языка без перезагрузки). Библиотека читает атрибут
+     один раз при старте, поэтому следим сами. */
+  function watchDocumentLang() {
+    if (C.autoDetect !== 'document' || window.__MDCC_LANG_OBS__ || !window.MutationObserver) return;
+    window.__MDCC_LANG_OBS__ = true;
+
+    var last = normLang(document.documentElement.lang);
+
+    new MutationObserver(function () {
+      var l = normLang(document.documentElement.lang);
+      if (!l || l === last) return;
+      last = l;
+      if (window.CookieConsent) window.CookieConsent.setLanguage(l);
+      else updateFabLabel(l);
+    }).observe(document.documentElement, { attributes: true, attributeFilter: ['lang'] });
   }
 
   function updateFabLabel(lang) {
@@ -701,16 +724,21 @@
          в вопросе плавающей кнопки нельзя — без постоянной точки отзыва согласия
          требование закона не выполняется. Поэтому дожимаем её и здесь;
          injectFloating() защищён от повторной вставки. */
-      var ensureRevokeUi = function () { injectFloating(); watchDataCc(); };
+      var ensureRevokeUi = function () { injectFloating(); watchDataCc(); watchDocumentLang(); };
       var started = window.CookieConsent.run(CC_CONFIG);
       if (started && typeof started.then === 'function') started.then(ensureRevokeUi);
       else ensureRevokeUi();
 
-      /* держим подпись плавающей кнопки в актуальном языке */
+      /* Нормализуем код языка и держим подпись плавающей кнопки в актуальном языке.
+         Нормализация обязательна: setLanguage('ru-RU') в самой библиотеке проходит
+         проверку, но дальше ищет перевод по исходной строке — 'ru-RU' в словаре нет,
+         и вызов молча ничего не делает. Региональные коды на сайтах обычное дело
+         (<html lang="ru-RU">), поэтому срезаем регион до делегирования. */
       var _setLang = window.CookieConsent.setLanguage;
       window.CookieConsent.setLanguage = function (lang, force) {
-        var r = _setLang.call(window.CookieConsent, lang, force);
-        updateFabLabel(lang);
+        var norm = normLang(lang) || lang;
+        var r = _setLang.call(window.CookieConsent, norm, force);
+        updateFabLabel(norm);
         return r;
       };
 
