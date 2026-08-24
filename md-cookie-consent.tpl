@@ -87,12 +87,13 @@ ___TEMPLATE_PARAMETERS___
         "macrosInSelect": false,
         "selectItems": [
           { "value": "document", "displayValue": "По атрибуту <html lang> (рекомендуется)" },
+          { "value": "path", "displayValue": "По префиксу адреса: /ro/, /ru/, /en/ — если <html lang> на сайте неверный" },
           { "value": "browser", "displayValue": "По языку браузера" },
           { "value": "false", "displayValue": "Не определять — всегда язык по умолчанию" }
         ],
         "simpleValueType": true,
         "defaultValue": "document",
-        "help": "Для многоязычных витрин оставьте «По атрибуту <html lang>» и следите, чтобы шаблон сайта проставлял корректный lang. Значения mo и md трактуются как румынский."
+        "help": "Для многоязычных витрин оставьте «По атрибуту <html lang>» и следите, чтобы шаблон сайта проставлял корректный lang. Коды с регионом (ru-RU, ro-MD) работают, mo и md трактуются как румынский. Если шаблон сайта отдаёт один и тот же lang на всех языковых версиях и починить его нельзя — переключитесь на «По префиксу адреса»: язык берётся из первого сегмента URL, а язык корня задаётся полем «Язык по умолчанию»."
       }
     ]
   },
@@ -215,7 +216,7 @@ ___TEMPLATE_PARAMETERS___
         "name": "runtimeUrl",
         "displayName": "URL файла md-cookie-consent.js",
         "simpleValueType": true,
-        "defaultValue": "https://cdn.jsdelivr.net/gh/ldozerl-wq/md-cookie-consent@v5/md-cookie-consent.js",
+        "defaultValue": "https://cdn.jsdelivr.net/gh/ldozerl-wq/md-cookie-consent@v6/md-cookie-consent.js",
         "help": "Куда вы выложили рантайм баннера. Один файл обслуживает все проекты. Домен должен быть разрешён в правах шаблона (вкладка Permissions → Injects scripts).",
         "valueValidators": [
           { "type": "NON_EMPTY" }

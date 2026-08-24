@@ -31,7 +31,7 @@
     policyVersion: '1.0',                                     // версия политики
     revision     : 1,                                         // ++ при смене политики -> пересогласие
     defaultLang  : 'ro',                                      // ro | ru | en
-    autoDetect   : 'document',                                // 'document' (<html lang>) | 'browser' | false
+    autoDetect   : 'document',                                // 'document' (<html lang>) | 'path' (/ro/, /ru/) | 'browser' | false
     layout       : 'box wide',                                // box | box wide | box inline | cloud | bar | bar inline
     position     : 'bottom left',                             // 'bottom left' | 'bottom center' | 'middle center' ...
     accent       : '#2b6cb0',                                 // цвет кнопки "Принять все"
@@ -81,6 +81,10 @@
   /* ==========================================================================
      2. CONSENT MODE v2 — карта сигналов
      ========================================================================== */
+
+  /* Список поддерживаемых языков нужен уже при сборке CC_CONFIG (определение
+     языка по адресу), поэтому объявлен здесь, а не рядом с подписями кнопки. */
+  var LANGS = ['ro', 'ru', 'en'];
 
   var MAP = {
     necessary : ['security_storage'],
@@ -471,9 +475,11 @@
       }
     },
 
+    /* Режим 'path' библиотеке неизвестен — определяем язык сами и отдаём его
+       готовым значением по умолчанию, а её автоопределение выключаем. */
     language: {
-      default: C.defaultLang,
-      autoDetect: C.autoDetect || undefined,
+      default: (C.autoDetect === 'path' ? (langFromPath() || C.defaultLang) : C.defaultLang),
+      autoDetect: (C.autoDetect === 'path' ? undefined : (C.autoDetect || undefined)),
       translations: { ro: T.ro, ru: T.ru, en: T.en, mo: T.ro, md: T.ro }
     },
 
@@ -512,7 +518,7 @@
   function normLang(l) {
     l = (l || '').slice(0, 2).toLowerCase();
     if (l === 'mo' || l === 'md') l = 'ro';
-    return FAB_LABELS[l] ? l : null;
+    return LANGS.indexOf(l) > -1 ? l : null;
   }
 
   /* Язык страницы важнее языка, на котором когда-то дали согласие: посетитель
@@ -520,9 +526,19 @@
      при autoDetect ведёт себя именно так — подпись кнопки не должна расходиться
      с баннером. Сохранённый в cookie код остаётся запасным вариантом на случай
      autoDetect: false. */
+  /* Запасной путь для сайтов, где <html lang> проставлен неверно и починить
+     шаблон нельзя: язык берётся из префикса адреса — loial.md/ro/, /ru/, /en/.
+     Сегмент обязан выглядеть как код языка, иначе «/romania» превратится в 'ro'. */
+  function langFromPath() {
+    var seg = (location.pathname.split('/')[1] || '').toLowerCase();
+    if (!/^[a-z]{2}(-[a-z]{2})?$/.test(seg)) return null;
+    return normLang(seg);
+  }
+
   function currentLang() {
     var ck = (window.CookieConsent && window.CookieConsent.getCookie()) || {};
     return (C.autoDetect === 'document' ? normLang(document.documentElement.lang) : null)
+        || (C.autoDetect === 'path'     ? langFromPath() : null)
         || (C.autoDetect === 'browser'  ? normLang(navigator.language) : null)
         || normLang(ck.languageCode)
         || normLang(C.defaultLang)

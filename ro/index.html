@@ -1,0 +1,49 @@
+<!doctype html>
+<!-- Атрибут намеренно неверный: так ведут себя сайты, где шаблон отдаёт один
+     и тот же lang на всех языковых версиях (loial.md, август 2026).
+     При autoDetect: 'path' баннер обязан взять язык из адреса — /ro/. -->
+<html lang="ru-RU" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MD Cookie Consent — определение языка по адресу</title>
+<style>
+  body{font:15px/1.6 system-ui,sans-serif;max-width:760px;margin:0 auto;padding:2rem 1rem 8rem;color:#1a202c}
+  h1{font-size:1.3rem}
+  code{background:#edf2f7;padding:.1rem .3rem;border-radius:3px}
+  pre{background:#f7fafc;border:1px solid #e2e8f0;border-radius:.4rem;padding:.75rem;font-size:13px}
+  .ok{color:#276749;font-weight:600} .no{color:#9b2c2c;font-weight:600}
+</style>
+</head>
+<body>
+<h1>Определение языка по адресу</h1>
+<p>Страница лежит по адресу <code>/ro/</code>, а в разметке стоит
+<code>&lt;html lang="ru-RU"&gt;</code> — как на сайтах с неисправным шаблоном.
+При <code>autoDetect: 'path'</code> баннер должен выйти на румынском.</p>
+
+<pre id="verdict">проверка…</pre>
+
+<script>
+  window.MDCC_CONFIG = {
+    privacyUrl : '/ro/politica-de-confidentialitate',
+    defaultLang: 'ru',            // язык корня сайта, без префикса
+    autoDetect : 'path',          // ← проверяемый режим
+    floatingBtn: true
+  };
+</script>
+<script src="../md-cookie-consent.js"></script>
+<script>
+  setTimeout(function () {
+    var title = (document.querySelector('#cc-main .cm__title') || {}).textContent || '';
+    var fab   = (document.getElementById('mdcc-fab') || {}).textContent || '';
+    var ok    = /confidenţialitatea|confidențialitatea/i.test(title) && /Setări/i.test(fab);
+    var v = document.getElementById('verdict');
+    v.className = ok ? 'ok' : 'no';
+    v.textContent = (ok ? '✔ язык взят из адреса' : '✘ язык НЕ взят из адреса') +
+      '\n<html lang> : ' + document.documentElement.lang +
+      '\nзаголовок   : ' + title +
+      '\nкнопка      : ' + fab;
+  }, 1500);
+</script>
+</body>
+</html>
