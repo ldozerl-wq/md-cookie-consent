@@ -259,11 +259,12 @@
     };
     return {
       consentModal: {
-        title: 'Respectăm confidențialitatea dumneavoastră',
-        description: 'Folosim cookie-uri strict necesare pentru funcționarea site-ului. Cookie-urile de analiză, marketing și funcționale sunt activate <strong>doar cu acordul dumneavoastră</strong>. Puteți accepta toate, respinge toate cele neesențiale sau alege individual. Vă puteți retrage consimțământul oricând.',
+        title: 'Folosim cookie-uri',
+        description: 'Pentru analiza traficului și oferte relevante, doar cu acordul tău. Poți schimba oricând alegerea.' +
+          (C.privacyUrl ? ' <a href="' + C.privacyUrl + '">Politica de confidențialitate</a>' : ''),
         acceptAllBtn: 'Accept toate',
-        acceptNecessaryBtn: 'Refuz toate',
-        showPreferencesBtn: 'Setări individuale',
+        acceptNecessaryBtn: 'Refuz',
+        showPreferencesBtn: 'Setări',
         footer: links(t)
       },
       preferencesModal: {
@@ -693,7 +694,18 @@
         /* на мобильном ряд рассыпается в столбец: настройки / отказаться / принять.
            «Принять» оказывается внизу — ближе всего к большому пальцу. */
         '@media(max-width:640px){#cc-main .cm__btns{flex-direction:column;align-items:stretch}' +
-        '#cc-main .cm__btn-group,#cc-main .cm__btn{width:100%}}'
+        '#cc-main .cm__btn-group,#cc-main .cm__btn{width:100%}}' +
+        /* v7: полоса внизу — «Refuz» и «Accept toate» в один ряд, «Setări» ссылкой над ними.
+           Баннер занимает ~22% экрана телефона вместо ~46% у плашки box wide. */
+        '@media(max-width:640px){#cc-main .cm--bar .cm__btns{flex-direction:row;flex-wrap:wrap;gap:8px;padding-top:8px}' +
+        '#cc-main .cm--bar .cm__btn-group{display:contents}' +
+        '#cc-main .cm--bar .cm__btn{flex:1 1 0;width:auto;margin:0;min-height:44px}' +
+        '#cc-main .cm--bar .cm__btn[data-role="necessary"]{order:2}' +
+        '#cc-main .cm--bar .cm__btn[data-role="all"]{order:3;flex:1.6 1 0}' +
+        '#cc-main .cm--bar .cm__btn[data-role="show"]{order:1;flex:1 1 100%;min-height:0;padding:2px 0;background:none;border:0;' +
+        'color:inherit;text-decoration:underline;font-weight:400;font-size:13px}' +
+        '#cc-main .cm--bar .cm__footer{display:none}' +
+        '#cc-main .cm--bar .cm__title{font-size:15px;margin-bottom:4px}#cc-main .cm--bar .cm__desc{font-size:13px}}'
       ) : '') +
 
       '#mdcc-fab{position:fixed;bottom:16px;' + (C.floatingSide === 'right' ? 'right' : 'left') + ':16px;' +
