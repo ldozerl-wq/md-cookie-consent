@@ -699,6 +699,8 @@
            Баннер занимает ~25% экрана телефона вместо ~46% у плашки box wide.
            v8: селекторы усилены (.cm.cm--bar) и !important — cookieconsent.css грузится
            позже наших стилей и при равной специфичности перебивал их (кнопки оставались столбиком). */
+        /* v9: в полосе ссылка на политику уже есть в тексте — подвал с той же ссылкой скрыт на всех ширинах */
+        '#cc-main .cm.cm--bar .cm__footer{display:none!important}' +
         '@media(max-width:640px){#cc-main .cm.cm--bar .cm__btns{flex-direction:row!important;flex-wrap:wrap!important;gap:8px!important;padding-top:8px!important}' +
         '#cc-main .cm.cm--bar .cm__btn-group{display:contents!important}' +
         '#cc-main .cm.cm--bar .cm__btn{flex:1 1 0!important;width:auto!important;margin:0!important;min-height:44px}' +
@@ -706,7 +708,6 @@
         '#cc-main .cm.cm--bar .cm__btn[data-role="all"]{order:3;flex:1.6 1 0!important}' +
         '#cc-main .cm.cm--bar .cm__btn[data-role="show"]{order:1;flex:1 1 100%!important;min-height:0;padding:2px 0!important;background:none!important;' +
         'border:0!important;color:inherit!important;text-decoration:underline;font-weight:400;font-size:13px}' +
-        '#cc-main .cm.cm--bar .cm__footer{display:none!important}' +
         '#cc-main .cm.cm--bar .cm__title{font-size:15px;margin-bottom:4px}' +
         '#cc-main .cm.cm--bar .cm__desc{font-size:13px}#cc-main .cm.cm--bar .cm__desc a{font-weight:400;text-decoration:underline}}'
       ) : '') +
