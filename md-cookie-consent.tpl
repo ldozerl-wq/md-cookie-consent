@@ -183,6 +183,14 @@ ___TEMPLATE_PARAMETERS___
         "simpleValueType": true,
         "defaultValue": false,
         "help": "Затемняет страницу и блокирует прокрутку, пока пользователь не сделает выбор. Повышает долю ответов, но ухудшает поведенческие метрики."
+      },
+      {
+        "type": "CHECKBOX",
+        "name": "compactMobile",
+        "checkboxText": "Компактный баннер на телефонах",
+        "simpleValueType": true,
+        "defaultValue": true,
+        "help": "RU и EN: на экранах до 640px первый слой показывает короткую фразу и ссылку «Подробнее» вместо длинного абзаца. Длинный абзац появляется поздно (после GTM) и на телефоне оказывается самым крупным текстом экрана — PageSpeed засчитывает его как LCP и занижает оценку. Полный текст, настройки и политика остаются в одно нажатие."
       }
     ]
   },
@@ -216,7 +224,7 @@ ___TEMPLATE_PARAMETERS___
         "name": "runtimeUrl",
         "displayName": "URL файла md-cookie-consent.js",
         "simpleValueType": true,
-        "defaultValue": "https://cdn.jsdelivr.net/gh/ldozerl-wq/md-cookie-consent@v6/md-cookie-consent.js",
+        "defaultValue": "https://cdn.jsdelivr.net/gh/ldozerl-wq/md-cookie-consent@v10/md-cookie-consent.js",
         "help": "Куда вы выложили рантайм баннера. Один файл обслуживает все проекты. Домен должен быть разрешён в правах шаблона (вкладка Permissions → Injects scripts).",
         "valueValidators": [
           { "type": "NON_EMPTY" }
@@ -305,6 +313,7 @@ setInWindow('MDCC_CONFIG', {
   position: data.position,
   buttonBias: data.buttonBias,
   floatingBtn: data.floatingBtn,
+  compactMobile: data.compactMobile,
   floatingSide: data.floatingSide,
   blockPage: data.blockPage,
   cookieDays: data.cookieDays,

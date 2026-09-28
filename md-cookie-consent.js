@@ -1,4 +1,4 @@
-﻿/*!
+/*!
  * MD Cookie Consent — рантайм универсального cookie-баннера для сайтов Молдовы
  * Закон РМ №195/2024 + №284/2004, Google Consent Mode v2, RO/RU/EN.
  * Основан на vanilla-cookieconsent v3.1.0 (Orest Bida, MIT).
@@ -44,6 +44,11 @@
          'equal'        — все кнопки одного веса (требование «отказаться не сложнее, чем согласиться»).
                           Ставьте 'equal' для клиентов с низкой толерантностью к риску. */
     buttonBias   : 'accept-first',
+    /* Компактный первый слой на телефонах (до 640px): короткая фраза + «Подробнее», полный текст — по нажатию.
+       Длинный абзац баннера на мобильном — самый крупный текстовый блок экрана, и PageSpeed засчитывал его
+       как LCP (появляется поздно — после GTM). Суть (необходимые — всегда, остальные — только с согласия,
+       отзыв — в полном тексте и плавающей кнопке) остаётся на первом слое; полный текст, настройки и политика — в одно нажатие. */
+    compactMobile: true,
     floatingBtn  : true,                                      // плавающая кнопка "Настройки cookie"
     floatingSide : 'left',                                    // left | right
     blockPage    : false,                                     // true = затемнение + блок скролла до выбора
@@ -75,6 +80,7 @@
   C.revision   = parseInt(C.revision, 10)   || 0;
   C.cookieDays = parseInt(C.cookieDays, 10) || 182;
   C.floatingBtn = (C.floatingBtn === true || C.floatingBtn === 'true');
+  C.compactMobile = !(C.compactMobile === false || C.compactMobile === 'false');
   C.blockPage   = (C.blockPage  === true || C.blockPage  === 'true');
   if (C.autoDetect === 'false' || C.autoDetect === false) C.autoDetect = false;
 
@@ -237,6 +243,15 @@
     };
   }
 
+  /* Текст первого слоя: полный (десктоп) + короткий с кнопкой «Подробнее» (телефон, compactMobile).
+     Какой из них виден, решает CSS (раздел 7); кнопка раскрывает полный текст (watchMoreBtn). */
+  function firstLayer(full, short, more) {
+    if (!C.compactMobile) return full;
+    return '<span class="mdcc-full">' + full + '</span>' +
+           '<span class="mdcc-short">' + short +
+           ' <button type="button" class="mdcc-more" aria-expanded="false">' + more + '</button></span>';
+  }
+
   var T = {};
 
   T.ro = (function () {
@@ -259,6 +274,7 @@
     };
     return {
       consentModal: {
+        /* RO: короткий первый слой на всех экранах — с v7 (firstLayer не нужен). */
         title: 'Folosim cookie-uri',
         description: 'Pentru analiza traficului și oferte relevante, doar cu acordul tău. Poți schimba oricând alegerea.' +
           (C.privacyUrl ? ' <a href="' + C.privacyUrl + '">Politica de confidențialitate</a>' : ''),
@@ -315,7 +331,10 @@
     return {
       consentModal: {
         title: 'Мы уважаем вашу конфиденциальность',
-        description: 'Мы используем строго необходимые cookie-файлы для работы сайта. Аналитические, маркетинговые и функциональные cookie включаются <strong>только с вашего согласия</strong>. Вы можете принять все, отклонить все необязательные или настроить каждую категорию отдельно. Согласие можно отозвать в любой момент.',
+        description: firstLayer(
+          'Мы используем строго необходимые cookie-файлы для работы сайта. Аналитические, маркетинговые и функциональные cookie включаются <strong>только с вашего согласия</strong>. Вы можете принять все, отклонить все необязательные или настроить каждую категорию отдельно. Согласие можно отозвать в любой момент.',
+          'Необходимые cookie — всегда, остальные — <strong>только с вашего согласия</strong>.',
+          'Подробнее'),
         acceptAllBtn: 'Принять все',
         acceptNecessaryBtn: 'Отклонить все',
         showPreferencesBtn: 'Настроить',
@@ -369,7 +388,10 @@
     return {
       consentModal: {
         title: 'We respect your privacy',
-        description: 'We use strictly necessary cookies to run this site. Analytics, marketing and functional cookies are enabled <strong>only with your consent</strong>. You can accept all, reject all non-essential cookies, or choose per category. You may withdraw consent at any time.',
+        description: firstLayer(
+          'We use strictly necessary cookies to run this site. Analytics, marketing and functional cookies are enabled <strong>only with your consent</strong>. You can accept all, reject all non-essential cookies, or choose per category. You may withdraw consent at any time.',
+          'Necessary cookies always; others only <strong>with your consent</strong>.',
+          'More'),
         acceptAllBtn: 'Accept all',
         acceptNecessaryBtn: 'Reject all',
         showPreferencesBtn: 'Manage preferences',
@@ -606,6 +628,17 @@
     document.addEventListener('click', function (e) {
       var t = e.target;
       if (!t || !t.closest) return;
+
+      /* «Подробнее» в компактном первом слое: раскрыть полный текст. Модалку при этом не закрываем. */
+      var more = t.closest('#cc-main .mdcc-more');
+      if (more) {
+        e.preventDefault();
+        var desc = more.closest('.cm__desc') || more.parentNode.parentNode;
+        desc.classList.add('mdcc-open');
+        more.setAttribute('aria-expanded', 'true');
+        return;
+      }
+
       var el = t.closest('[data-cc="show-preferencesModal"]');
       if (!el || el.id === 'mdcc-fab') return;   // у кнопки свой обработчик
       e.preventDefault();
@@ -675,6 +708,13 @@
       '--cc-btn-primary-hover-bg:#1a4e85;--cc-btn-primary-hover-border-color:#1a4e85;' +
       '--cc-toggle-on-bg:' + C.accent + ';--cc-font-family:inherit;--cc-modal-border-radius:.6rem;--cc-z-index:2147483000}' +
       '#cc-main .cm__btn,#cc-main .pm__btn{font-weight:600}' +
+
+      /* компактный первый слой на телефоне (compactMobile, см. firstLayer) */
+      '#cc-main .mdcc-short{display:none}' +
+      '#cc-main .mdcc-more{background:none;border:0;padding:0;margin:0;font:inherit;color:' + C.accent + ';' +
+      'text-decoration:underline;cursor:pointer}' +
+      '@media(max-width:640px){#cc-main .mdcc-full{display:none}#cc-main .mdcc-short{display:inline}' +
+      '#cc-main .mdcc-open .mdcc-full{display:inline}#cc-main .mdcc-open .mdcc-short{display:none}}' +
 
       (C.buttonBias === 'accept-first' ? (
         /* горизонтальный ряд: [Настройки] [Отказаться] ......... [Принять все]

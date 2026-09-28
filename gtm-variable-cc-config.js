@@ -55,6 +55,7 @@ function () {
     buttonBias   : 'accept-first',
     layout       : 'box wide',
     position     : 'bottom left',
+    compactMobile: true,                                      // короткий первый слой RU/EN на телефонах (v10)
     floatingBtn  : true,
     floatingSide : 'left',
     blockPage    : false,
