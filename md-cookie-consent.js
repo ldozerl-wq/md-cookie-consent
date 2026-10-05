@@ -316,16 +316,19 @@
            одинаково на первом слое и в настройках. Короткий вариант остался
            с v7, когда экономили ширину горизонтального ряда на телефоне;
            со столбиком во всю ширину (buttonBias: stacked) места хватает. */
-        acceptAllBtn: 'Accept toate nenecesare',
-        acceptNecessaryBtn: 'Accept doar necesare',
-        showPreferencesBtn: 'Setări',
+        /* Названия — по образцу заказчика (point.md). На первом слое и в настройках
+           они намеренно разные: на баннере предлагают принять только необходимые,
+           в настройках — отклонить все. */
+        acceptAllBtn: 'Acceptă toate',
+        acceptNecessaryBtn: 'Acceptă doar necesarele',
+        showPreferencesBtn: 'Personalizează',
         footer: links(t)
       },
       preferencesModal: {
         title: 'Preferințe privind cookie-urile',
-        acceptAllBtn: 'Accept toate nenecesare',
-        acceptNecessaryBtn: 'Accept doar necesare',
-        savePreferencesBtn: 'Salvez preferințele',
+        acceptAllBtn: 'Acceptă toate',
+        acceptNecessaryBtn: 'Respinge toate',
+        savePreferencesBtn: 'Salvează preferințele',
         closeIconLabel: 'Închide',
         serviceCounterLabel: 'Serviciu|Servicii',
         sections: [
@@ -371,19 +374,19 @@
       consentModal: {
         title: 'Мы ценим вашу конфиденциальность',
         description: firstLayer(
-          'Мы используем строго необходимые cookie-файлы для работы сайта. Аналитические, маркетинговые и функциональные cookie включаются <strong>только с вашего согласия</strong>. Вы можете принять все необязательные, принять только необходимые или настроить каждую категорию отдельно. Согласие можно отозвать в любой момент.',
+          'Мы используем строго необходимые cookie-файлы для работы сайта. Аналитические, маркетинговые и функциональные cookie включаются <strong>только с вашего согласия</strong>. Вы можете принять все, принять только необходимые или настроить каждую категорию отдельно. Согласие можно отозвать в любой момент.',
           'Необходимые cookie — всегда, остальные — <strong>только с вашего согласия</strong>.',
           'Подробнее'),
-        acceptAllBtn: 'Принять все необязательные',
+        acceptAllBtn: 'Принять все',
         acceptNecessaryBtn: 'Принять только необходимые',
         showPreferencesBtn: 'Настроить',
         footer: links(t)
       },
       preferencesModal: {
         title: 'Настройки cookie-файлов',
-        acceptAllBtn: 'Принять все необязательные',
-        acceptNecessaryBtn: 'Принять только необходимые',
-        savePreferencesBtn: 'Сохранить выбор',
+        acceptAllBtn: 'Принять все',
+        acceptNecessaryBtn: 'Отклонить все',
+        savePreferencesBtn: 'Сохранить настройки',
         closeIconLabel: 'Закрыть',
         serviceCounterLabel: 'Сервис|Сервиса|Сервисов',
         sections: [
@@ -429,18 +432,18 @@
       consentModal: {
         title: 'We respect your privacy',
         description: firstLayer(
-          'We use strictly necessary cookies to run this site. Analytics, marketing and functional cookies are enabled <strong>only with your consent</strong>. You can accept all non-essential cookies, accept only the essential ones, or choose per category. You may withdraw consent at any time.',
+          'We use strictly necessary cookies to run this site. Analytics, marketing and functional cookies are enabled <strong>only with your consent</strong>. You can accept all, accept only the essential ones, or choose per category. You may withdraw consent at any time.',
           'Necessary cookies always; others only <strong>with your consent</strong>.',
           'More'),
-        acceptAllBtn: 'Accept all non-essential',
+        acceptAllBtn: 'Accept all',
         acceptNecessaryBtn: 'Accept only essential',
         showPreferencesBtn: 'Manage preferences',
         footer: links(t)
       },
       preferencesModal: {
         title: 'Cookie preferences',
-        acceptAllBtn: 'Accept all non-essential',
-        acceptNecessaryBtn: 'Accept only essential',
+        acceptAllBtn: 'Accept all',
+        acceptNecessaryBtn: 'Reject all',
         savePreferencesBtn: 'Save preferences',
         closeIconLabel: 'Close',
         serviceCounterLabel: 'Service|Services',
