@@ -221,37 +221,65 @@
       : '';
   }
 
+  /* Поставщики cookie и адреса их политик защиты данных.
+     Требование: по каждому cookie видно, кто его ставит и где читать его политику.
+     Названия — узнаваемые торговые, а не юридические лица: договаривающаяся
+     сторона зависит от конкретного договора клиента, выдумывать её нельзя.
+     Если у клиента DPA с европейским юрлицом — поправьте и название, и страну. */
+  var PROVIDERS = {
+    ga:       { name: 'Google Analytics',     url: 'https://policies.google.com/privacy' },
+    gads:     { name: 'Google Ads',           url: 'https://policies.google.com/privacy' },
+    dclk:     { name: 'Google (DoubleClick)', url: 'https://policies.google.com/privacy' },
+    yt:       { name: 'YouTube (Google)',     url: 'https://policies.google.com/privacy' },
+    clarity:  { name: 'Microsoft Clarity',    url: 'https://privacy.microsoft.com/privacystatement' },
+    meta:     { name: 'Meta (Facebook)',      url: 'https://www.facebook.com/privacy/policy' },
+    tiktok:   { name: 'TikTok',               url: 'https://www.tiktok.com/legal/privacy-policy' }
+  };
+
+  function prov(key) {
+    var p = PROVIDERS[key];
+    return '<a href="' + p.url + '" target="_blank" rel="noopener noreferrer">' + p.name + '</a>';
+  }
+
+  /* Cookie самого сайта: поставщик — оператор, его политика уже задана полем тега. */
+  function provSelf() {
+    return C.privacyUrl
+      ? '<a href="' + C.privacyUrl + '">' + location.hostname + '</a>'
+      : location.hostname;
+  }
+
   function tables(t) {
+    var head = { name: t.h_name, desc: t.h_desc, prov: t.h_prov, exp: t.h_exp, tr: t.h_tr };
     return {
       analytics: {
-        headers: { name: t.h_name, domain: t.h_domain, desc: t.h_desc, exp: t.h_exp },
+        headers: head,
         body: [
-          { name: '_ga, _ga_*', domain: 'Google Analytics', desc: t.d_ga,      exp: t.e_2y },
-          { name: '_gid',       domain: 'Google Analytics', desc: t.d_gid,     exp: t.e_24h },
-          { name: '_clck, _clsk', domain: 'Microsoft Clarity', desc: t.d_clarity, exp: t.e_1y }
+          { name: '_ga, _ga_*',   desc: t.d_ga,      prov: prov('ga'),      exp: t.e_2y,  tr: t.tr_us },
+          { name: '_gid',         desc: t.d_gid,     prov: prov('ga'),      exp: t.e_24h, tr: t.tr_us },
+          { name: '_clck, _clsk', desc: t.d_clarity, prov: prov('clarity'), exp: t.e_1y,  tr: t.tr_us }
         ]
       },
       marketing: {
-        headers: { name: t.h_name, domain: t.h_domain, desc: t.h_desc, exp: t.h_exp },
+        headers: head,
         body: [
-          { name: '_fbp, _fbc', domain: 'Meta (Facebook)', desc: t.d_fbp, exp: t.e_3m },
-          { name: '_gcl_*',     domain: 'Google Ads',      desc: t.d_gcl, exp: t.e_3m },
-          { name: 'IDE, test_cookie', domain: 'doubleclick.net', desc: t.d_ide, exp: t.e_1y },
-          { name: '_ttp',       domain: 'TikTok',          desc: t.d_ttp, exp: t.e_1y }
+          { name: '_fbp, _fbc',       desc: t.d_fbp, prov: prov('meta'),   exp: t.e_3m, tr: t.tr_us },
+          { name: '_gcl_*',           desc: t.d_gcl, prov: prov('gads'),   exp: t.e_3m, tr: t.tr_us },
+          { name: 'IDE, test_cookie', desc: t.d_ide, prov: prov('dclk'),   exp: t.e_1y, tr: t.tr_us },
+          { name: '_ttp',             desc: t.d_ttp, prov: prov('tiktok'), exp: t.e_1y, tr: t.tr_tiktok }
         ]
       },
       functional: {
-        headers: { name: t.h_name, domain: t.h_domain, desc: t.h_desc, exp: t.h_exp },
+        headers: head,
         body: [
-          { name: 'YSC, VISITOR_INFO1_LIVE', domain: 'YouTube', desc: t.d_yt, exp: t.e_6m },
-          { name: 'lang, locale', domain: location.hostname, desc: t.d_lang, exp: t.e_1y }
+          { name: 'YSC, VISITOR_INFO1_LIVE', desc: t.d_yt,   prov: prov('yt'), exp: t.e_6m, tr: t.tr_us },
+          { name: 'lang, locale',            desc: t.d_lang, prov: provSelf(), exp: t.e_1y, tr: t.tr_none }
         ]
       },
       necessary: {
-        headers: { name: t.h_name, domain: t.h_domain, desc: t.h_desc, exp: t.h_exp },
+        headers: head,
         body: [
-          { name: 'cc_cookie', domain: location.hostname, desc: t.d_cc, exp: C.cookieDays + ' ' + t.days },
-          { name: 'PHPSESSID / session', domain: location.hostname, desc: t.d_sess, exp: t.e_session }
+          { name: 'cc_cookie',          desc: t.d_cc,   prov: provSelf(), exp: C.cookieDays + ' ' + t.days, tr: t.tr_none },
+          { name: 'PHPSESSID / session', desc: t.d_sess, prov: provSelf(), exp: t.e_session,                 tr: t.tr_none }
         ]
       }
     };
@@ -272,7 +300,8 @@
     var t = {
       privacyPolicy:'Politica de confidențialitate',
       days:'zile',
-      h_name:'Cookie', h_domain:'Furnizor', h_desc:'Scop', h_exp:'Durată',
+      h_name:'Cookie', h_desc:'Scop', h_prov:'Furnizor', h_exp:'Stocare', h_tr:'Transfer',
+      tr_us:'SUA', tr_tiktok:'SUA, Singapore', tr_none:'Fără transfer',
       e_2y:'2 ani', e_1y:'1 an', e_6m:'6 luni', e_3m:'3 luni', e_24h:'24 ore', e_session:'Sesiune',
       d_ga:'Identifică vizitatorul pentru statistici agregate de trafic.',
       d_gid:'Distinge vizitatorii în cadrul unei zile.',
@@ -292,14 +321,14 @@
         title: 'Folosim cookie-uri',
         description: 'Pentru analiza traficului și oferte relevante, doar cu acordul tău. Poți schimba oricând alegerea.' +
           (C.privacyUrl ? ' <a href="' + C.privacyUrl + '">Politica de confidențialitate</a>' : ''),
-        acceptAllBtn: 'Accept toate',
+        acceptAllBtn: 'Accept toate nenecesare',
         acceptNecessaryBtn: 'Refuz',
         showPreferencesBtn: 'Setări',
         footer: links(t)
       },
       preferencesModal: {
         title: 'Preferințe privind cookie-urile',
-        acceptAllBtn: 'Accept toate',
+        acceptAllBtn: 'Accept toate nenecesare',
         acceptNecessaryBtn: 'Refuz toate',
         savePreferencesBtn: 'Salvez preferințele',
         closeIconLabel: 'Închide',
@@ -328,7 +357,8 @@
     var t = {
       privacyPolicy:'Политика конфиденциальности',
       days:'дн.',
-      h_name:'Cookie', h_domain:'Поставщик', h_desc:'Назначение', h_exp:'Срок',
+      h_name:'Cookie', h_desc:'Назначение', h_prov:'Поставщик', h_exp:'Хранение', h_tr:'Передача',
+      tr_us:'США', tr_tiktok:'США, Сингапур', tr_none:'Без передачи',
       e_2y:'2 года', e_1y:'1 год', e_6m:'6 месяцев', e_3m:'3 месяца', e_24h:'24 часа', e_session:'Сессия',
       d_ga:'Идентифицирует посетителя для агрегированной статистики.',
       d_gid:'Различает посетителей в пределах суток.',
@@ -349,14 +379,14 @@
           'Мы используем строго необходимые cookie-файлы для работы сайта. Аналитические, маркетинговые и функциональные cookie включаются <strong>только с вашего согласия</strong>. Вы можете принять все, отклонить все необязательные или настроить каждую категорию отдельно. Согласие можно отозвать в любой момент.',
           'Необходимые cookie — всегда, остальные — <strong>только с вашего согласия</strong>.',
           'Подробнее'),
-        acceptAllBtn: 'Принять все',
+        acceptAllBtn: 'Принять все необязательные',
         acceptNecessaryBtn: 'Отклонить все',
         showPreferencesBtn: 'Настроить',
         footer: links(t)
       },
       preferencesModal: {
         title: 'Настройки cookie-файлов',
-        acceptAllBtn: 'Принять все',
+        acceptAllBtn: 'Принять все необязательные',
         acceptNecessaryBtn: 'Отклонить все',
         savePreferencesBtn: 'Сохранить выбор',
         closeIconLabel: 'Закрыть',
@@ -385,7 +415,8 @@
     var t = {
       privacyPolicy:'Privacy Policy',
       days:'days',
-      h_name:'Cookie', h_domain:'Provider', h_desc:'Purpose', h_exp:'Retention',
+      h_name:'Cookie', h_desc:'Purpose', h_prov:'Provider', h_exp:'Retention', h_tr:'Transfer',
+      tr_us:'USA', tr_tiktok:'USA, Singapore', tr_none:'No transfer',
       e_2y:'2 years', e_1y:'1 year', e_6m:'6 months', e_3m:'3 months', e_24h:'24 hours', e_session:'Session',
       d_ga:'Identifies the visitor for aggregated traffic statistics.',
       d_gid:'Distinguishes visitors within a single day.',
@@ -406,14 +437,14 @@
           'We use strictly necessary cookies to run this site. Analytics, marketing and functional cookies are enabled <strong>only with your consent</strong>. You can accept all, reject all non-essential cookies, or choose per category. You may withdraw consent at any time.',
           'Necessary cookies always; others only <strong>with your consent</strong>.',
           'More'),
-        acceptAllBtn: 'Accept all',
+        acceptAllBtn: 'Accept all non-essential',
         acceptNecessaryBtn: 'Reject all',
         showPreferencesBtn: 'Manage preferences',
         footer: links(t)
       },
       preferencesModal: {
         title: 'Cookie preferences',
-        acceptAllBtn: 'Accept all',
+        acceptAllBtn: 'Accept all non-essential',
         acceptNecessaryBtn: 'Reject all',
         savePreferencesBtn: 'Save preferences',
         closeIconLabel: 'Close',
