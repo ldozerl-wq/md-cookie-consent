@@ -823,10 +823,16 @@
       (C.buttonBias === 'accept-first' ? (
         /* горизонтальный ряд: [Настройки] [Отказаться] ......... [Принять все]
            Порядок узлов переставляет biasButtons() (см. раздел 6b). */
-        '#cc-main .cm__btns{display:flex;flex-direction:row;flex-wrap:wrap;align-items:center;' +
+        /* nowrap, кнопки сжимаемы (min-width:0) и переносят текст внутри себя.
+           С flex-wrap:wrap ряд разваливался на длинных названиях: на ecb.md
+           три кнопки требовали 578px в карточке 576px, и акцентная уезжала
+           на вторую строку с рваным выравниванием. Теперь вместо переноса
+           ряда кнопки ужимаются, а длинная подпись переходит на вторую
+           строку внутри кнопки — раскладка остаётся предсказуемой. */
+        '#cc-main .cm__btns{display:flex;flex-direction:row;flex-wrap:nowrap;align-items:stretch;' +
         'justify-content:space-between;gap:.5rem}' +
-        '#cc-main .cm__btn-group{display:flex;flex-direction:row;gap:.5rem;width:auto;flex:0 1 auto}' +
-        '#cc-main .cm__btn{width:auto;flex:0 1 auto}' +
+        '#cc-main .cm__btn-group{display:flex;flex-direction:row;gap:.5rem;width:auto;flex:0 1 auto;min-width:0}' +
+        '#cc-main .cm__btn{width:auto;flex:0 1 auto;min-width:0;white-space:normal}' +
         /* акцент на согласии */
         '#cc-main .cm__btn[data-role="all"]{background:' + C.accent + ';border-color:' + C.accent + ';color:#fff}' +
         /* приглушённый отказ. Серый выбран AA-контрастный (5.5:1) —
