@@ -321,15 +321,19 @@
         title: 'Folosim cookie-uri',
         description: 'Pentru analiza traficului și oferte relevante, doar cu acordul tău. Poți schimba oricând alegerea.' +
           (C.privacyUrl ? ' <a href="' + C.privacyUrl + '">Politica de confidențialitate</a>' : ''),
+        /* «Refuz toate», а не короткое «Refuz»: кнопка обязана называться
+           одинаково на первом слое и в настройках. Короткий вариант остался
+           с v7, когда экономили ширину горизонтального ряда на телефоне;
+           со столбиком во всю ширину (buttonBias: stacked) места хватает. */
         acceptAllBtn: 'Accept toate nenecesare',
-        acceptNecessaryBtn: 'Refuz',
+        acceptNecessaryBtn: 'Accept doar necesare',
         showPreferencesBtn: 'Setări',
         footer: links(t)
       },
       preferencesModal: {
         title: 'Preferințe privind cookie-urile',
         acceptAllBtn: 'Accept toate nenecesare',
-        acceptNecessaryBtn: 'Refuz toate',
+        acceptNecessaryBtn: 'Accept doar necesare',
         savePreferencesBtn: 'Salvez preferințele',
         closeIconLabel: 'Închide',
         serviceCounterLabel: 'Serviciu|Servicii',
@@ -374,20 +378,20 @@
     };
     return {
       consentModal: {
-        title: 'Мы уважаем вашу конфиденциальность',
+        title: 'Мы ценим вашу конфиденциальность',
         description: firstLayer(
-          'Мы используем строго необходимые cookie-файлы для работы сайта. Аналитические, маркетинговые и функциональные cookie включаются <strong>только с вашего согласия</strong>. Вы можете принять все, отклонить все необязательные или настроить каждую категорию отдельно. Согласие можно отозвать в любой момент.',
+          'Мы используем строго необходимые cookie-файлы для работы сайта. Аналитические, маркетинговые и функциональные cookie включаются <strong>только с вашего согласия</strong>. Вы можете принять все необязательные, принять только необходимые или настроить каждую категорию отдельно. Согласие можно отозвать в любой момент.',
           'Необходимые cookie — всегда, остальные — <strong>только с вашего согласия</strong>.',
           'Подробнее'),
         acceptAllBtn: 'Принять все необязательные',
-        acceptNecessaryBtn: 'Отклонить все',
+        acceptNecessaryBtn: 'Принять только необходимые',
         showPreferencesBtn: 'Настроить',
         footer: links(t)
       },
       preferencesModal: {
         title: 'Настройки cookie-файлов',
         acceptAllBtn: 'Принять все необязательные',
-        acceptNecessaryBtn: 'Отклонить все',
+        acceptNecessaryBtn: 'Принять только необходимые',
         savePreferencesBtn: 'Сохранить выбор',
         closeIconLabel: 'Закрыть',
         serviceCounterLabel: 'Сервис|Сервиса|Сервисов',
@@ -434,18 +438,18 @@
       consentModal: {
         title: 'We respect your privacy',
         description: firstLayer(
-          'We use strictly necessary cookies to run this site. Analytics, marketing and functional cookies are enabled <strong>only with your consent</strong>. You can accept all, reject all non-essential cookies, or choose per category. You may withdraw consent at any time.',
+          'We use strictly necessary cookies to run this site. Analytics, marketing and functional cookies are enabled <strong>only with your consent</strong>. You can accept all non-essential cookies, accept only the essential ones, or choose per category. You may withdraw consent at any time.',
           'Necessary cookies always; others only <strong>with your consent</strong>.',
           'More'),
         acceptAllBtn: 'Accept all non-essential',
-        acceptNecessaryBtn: 'Reject all',
+        acceptNecessaryBtn: 'Accept only essential',
         showPreferencesBtn: 'Manage preferences',
         footer: links(t)
       },
       preferencesModal: {
         title: 'Cookie preferences',
         acceptAllBtn: 'Accept all non-essential',
-        acceptNecessaryBtn: 'Reject all',
+        acceptNecessaryBtn: 'Accept only essential',
         savePreferencesBtn: 'Save preferences',
         closeIconLabel: 'Close',
         serviceCounterLabel: 'Service|Services',
