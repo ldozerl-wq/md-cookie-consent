@@ -120,7 +120,7 @@
       var s = document.createElement('script');
       /* ?cdn=1 — грузить рантайм с jsDelivr, ровно как это делает шаблон GTM */
       s.src = (location.search.indexOf('cdn=1') > -1)
-        ? 'https://cdn.jsdelivr.net/gh/ldozerl-wq/md-cookie-consent@v16/md-cookie-consent.js'
+        ? 'https://cdn.jsdelivr.net/gh/ldozerl-wq/md-cookie-consent@v17/md-cookie-consent.js'
         : 'md-cookie-consent.js';
       s.onload = function () { setTimeout(dump, 1200); };
       document.head.appendChild(s);
