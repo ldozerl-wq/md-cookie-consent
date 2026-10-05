@@ -70,8 +70,8 @@
     floatingSide : 'left',
     blockPage    : false,
     logEndpoint  : '',
-    /* ?bias=equal — проверить компромиссный вариант с равнозначными кнопками */
-    buttonBias   : (location.search.indexOf('bias=equal') > -1) ? 'equal' : 'accept-first'
+    /* ?bias=accept-first | equal | stacked — по умолчанию stacked, как в рантайме */
+    buttonBias   : (location.search.match(/[?&]bias=([\w-]+)/) || [])[1] || 'stacked'
   };
 
   function dump() {
@@ -120,7 +120,7 @@
       var s = document.createElement('script');
       /* ?cdn=1 — грузить рантайм с jsDelivr, ровно как это делает шаблон GTM */
       s.src = (location.search.indexOf('cdn=1') > -1)
-        ? 'https://cdn.jsdelivr.net/gh/ldozerl-wq/md-cookie-consent@v10/md-cookie-consent.js'
+        ? 'https://cdn.jsdelivr.net/gh/ldozerl-wq/md-cookie-consent@v11/md-cookie-consent.js'
         : 'md-cookie-consent.js';
       s.onload = function () { setTimeout(dump, 1200); };
       document.head.appendChild(s);

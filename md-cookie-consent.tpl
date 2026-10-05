@@ -145,12 +145,13 @@ ___TEMPLATE_PARAMETERS___
         "displayName": "Вес кнопок",
         "macrosInSelect": false,
         "selectItems": [
+          { "value": "stacked", "displayValue": "Столбиком: Принять / Отклонить одного веса, Настроить серая (рекомендуется)" },
           { "value": "accept-first", "displayValue": "Акцент на согласии — выше конверсия, есть правовой риск" },
-          { "value": "equal", "displayValue": "Равнозначные — полное соответствие закону" }
+          { "value": "equal", "displayValue": "Равнозначные в один ряд" }
         ],
         "simpleValueType": true,
-        "defaultValue": "accept-first",
-        "help": "«Акцент на согласии» красит кнопку отказа серым. Это повышает долю согласий, но непропорциональное выделение трактуется EDPB Guidelines 03/2022 как deceptive design: при проверке CNPDCP собранные согласия могут быть признаны недействительными. Выбирайте осознанно и по каждому проекту отдельно."
+        "defaultValue": "stacked",
+        "help": "«Столбиком» — три кнопки во всю ширину: Принять все, под ней такая же Отклонить все, ниже серая Настроить. Отказ ровно так же доступен, как согласие, приглушена настройка — это требованиям не противоречит. «Акцент на согласии» красит серым сам отказ: доля согласий выше, но непропорциональное выделение трактуется EDPB Guidelines 03/2022 как deceptive design, и при проверке CNPDCP собранные согласия могут быть признаны недействительными. Выбирайте осознанно и по каждому проекту отдельно."
       },
       {
         "type": "CHECKBOX",
@@ -224,7 +225,7 @@ ___TEMPLATE_PARAMETERS___
         "name": "runtimeUrl",
         "displayName": "URL файла md-cookie-consent.js",
         "simpleValueType": true,
-        "defaultValue": "https://cdn.jsdelivr.net/gh/ldozerl-wq/md-cookie-consent@v10/md-cookie-consent.js",
+        "defaultValue": "https://cdn.jsdelivr.net/gh/ldozerl-wq/md-cookie-consent@v11/md-cookie-consent.js",
         "help": "Куда вы выложили рантайм баннера. Один файл обслуживает все проекты. Домен должен быть разрешён в правах шаблона (вкладка Permissions → Injects scripts).",
         "valueValidators": [
           { "type": "NON_EMPTY" }

@@ -37,13 +37,17 @@
     accent       : '#2b6cb0',                                 // цвет кнопки "Принять все"
 
     /* Визуальный вес кнопок первого слоя:
-         'accept-first' — «Принять все» акцентная и первая, «Отказаться» серая и прижата вправо.
+         'stacked'      — столбиком во всю ширину: [Принять все] [Отклонить все] [Настроить].
+                          Согласие и отказ одного веса и размера, третьей идёт серая «Настроить».
+                          Требование «отказаться не сложнее, чем согласиться» выполняется буквально:
+                          отказ — такая же кнопка прямо под согласием. Приглушена настройка,
+                          а не отказ, — это EDPB не запрещает. Значение по умолчанию с v11.
+         'accept-first' — «Принять все» акцентная и прижата вправо, «Отказаться» серая.
                           Выше конверсия в согласие, НО непропорциональное выделение
                           трактуется EDPB Guidelines 03/2022 как deceptive design:
                           при проверке CNPDCP согласие может быть признано недействительным.
-         'equal'        — все кнопки одного веса (требование «отказаться не сложнее, чем согласиться»).
-                          Ставьте 'equal' для клиентов с низкой толерантностью к риску. */
-    buttonBias   : 'accept-first',
+         'equal'        — все кнопки одного веса в родном горизонтальном ряду. */
+    buttonBias   : 'stacked',
     /* Компактный первый слой на телефонах (до 640px): короткая фраза + «Подробнее», полный текст — по нажатию.
        Длинный абзац баннера на мобильном — самый крупный текстовый блок экрана, и PageSpeed засчитывал его
        как LCP (появляется поздно — после GTM). Суть (необходимые — всегда, остальные — только с согласия,
@@ -450,16 +454,18 @@
     },
 
     guiOptions: {
+      /* equalWeightButtons выключает родной класс --secondary у отказа.
+         В режиме stacked оформление задаём сами, поэтому база нужна ровная. */
       consentModal: {
         layout: C.layout,
         position: C.position,
-        equalWeightButtons: C.buttonBias === 'equal',
+        equalWeightButtons: C.buttonBias !== 'accept-first',
         flipButtons: false
       },
       preferencesModal: {
         layout: 'box',
         position: 'right',
-        equalWeightButtons: C.buttonBias === 'equal',
+        equalWeightButtons: C.buttonBias !== 'accept-first',
         flipButtons: false
       }
     },
@@ -715,6 +721,46 @@
       'text-decoration:underline;cursor:pointer}' +
       '@media(max-width:640px){#cc-main .mdcc-full{display:none}#cc-main .mdcc-short{display:inline}' +
       '#cc-main .mdcc-open .mdcc-full{display:inline}#cc-main .mdcc-open .mdcc-short{display:none}}' +
+
+      /* Ссылка на политику в описании раздела идёт отдельным абзацем. Библиотека
+         делает <p> внутри описания строчным, и ссылка прилипала к точке
+         предыдущего предложения: «…функции сайта.Политика конфиденциальности». */
+      '#cc-main .pm__section-desc p{display:block!important;margin:.5rem 0 0}' +
+
+      (C.buttonBias === 'stacked' ? (
+        /* Столбик во всю ширину: [Принять все] [Отклонить все] [Настроить].
+           Родной порядок узлов именно такой, переставлять ничего не нужно —
+           biasButtons() в этом режиме не работает, и обход по Tab совпадает
+           с тем, что видит глаз.
+           display:contents у групп убирает их из раскладки, но сохраняет
+           в DOM: кнопки становятся прямыми детьми колонки. */
+        /* Селекторы усилены и с !important: cookieconsent.css подключается позже
+           наших стилей, и при равной специфичности раскладка оставалась рядом. */
+        '#cc-main .cm .cm__btns{display:flex!important;flex-direction:column!important;' +
+        'align-items:stretch!important;gap:.5rem!important;width:100%}' +
+        '#cc-main .cm .cm__btn-group{display:contents!important}' +
+        '#cc-main .cm .cm__btn{width:100%!important;flex:0 0 auto!important;margin:0!important;min-height:44px}' +
+        /* Согласие и отказ — одна кнопка в двух экземплярах: цвет, размер, вес шрифта.
+           Отказ стоит прямо под согласием, то есть ровно так же доступен. */
+        '#cc-main .cm__btn[data-role="all"],#cc-main .cm__btn[data-role="necessary"],' +
+        '#cc-main .pm__btn[data-role="all"],#cc-main .pm__btn[data-role="necessary"]' +
+        '{background:' + C.accent + ';border-color:' + C.accent + ';color:#fff;font-weight:600}' +
+        '#cc-main .cm__btn[data-role="all"]:hover,#cc-main .cm__btn[data-role="necessary"]:hover,' +
+        '#cc-main .pm__btn[data-role="all"]:hover,#cc-main .pm__btn[data-role="necessary"]:hover' +
+        '{background:#1a4e85;border-color:#1a4e85}' +
+        /* Третьестепенные: «Настроить» на первом слое и «Сохранить выбор» в настройках.
+           Серый AA-контрастный (5.5:1) — приглушённая кнопка не должна стать нечитаемой. */
+        '#cc-main .cm__btn[data-role="show"],#cc-main .pm__btn[data-role="save"]' +
+        '{background:#f1f3f5;border-color:#dee2e6;color:#5c636a;font-weight:500}' +
+        '#cc-main .cm__btn[data-role="show"]:hover,#cc-main .pm__btn[data-role="save"]:hover' +
+        '{background:#e9ecef;border-color:#ced4da;color:#495057}' +
+        /* Подвал настроек: три кнопки в ряд, на телефоне — столбиком. */
+        '#cc-main .pm .pm__footer{display:flex!important;flex-wrap:wrap!important;gap:.5rem!important}' +
+        '#cc-main .pm .pm__btn-group{display:contents!important}' +
+        '#cc-main .pm .pm__btn{flex:1 1 auto!important;margin:0!important;min-height:44px}' +
+        '@media(max-width:640px){#cc-main .pm .pm__footer{flex-direction:column!important}' +
+        '#cc-main .pm .pm__btn{width:100%!important}}'
+      ) : '') +
 
       (C.buttonBias === 'accept-first' ? (
         /* горизонтальный ряд: [Настройки] [Отказаться] ......... [Принять все]
