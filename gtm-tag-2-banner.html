@@ -317,10 +317,11 @@
     };
     return {
       consentModal: {
-        /* RO: короткий первый слой на всех экранах — с v7 (firstLayer не нужен). */
+        /* RO: короткий первый слой на всех экранах — с v7 (firstLayer не нужен).
+           Ссылка на политику в текст не вшита: её отдаёт подвал (footer ниже),
+           иначе в раскладке box она выводится дважды — в тексте и в подвале. */
         title: 'Folosim cookie-uri',
-        description: 'Pentru analiza traficului și oferte relevante, doar cu acordul tău. Poți schimba oricând alegerea.' +
-          (C.privacyUrl ? ' <a href="' + C.privacyUrl + '">Politica de confidențialitate</a>' : ''),
+        description: 'Pentru analiza traficului și oferte relevante, doar cu acordul tău. Poți schimba oricând alegerea.',
         /* «Refuz toate», а не короткое «Refuz»: кнопка обязана называться
            одинаково на первом слое и в настройках. Короткий вариант остался
            с v7, когда экономили ширину горизонтального ряда на телефоне;
@@ -837,8 +838,10 @@
            Баннер занимает ~25% экрана телефона вместо ~46% у плашки box wide.
            v8: селекторы усилены (.cm.cm--bar) и !important — cookieconsent.css грузится
            позже наших стилей и при равной специфичности перебивал их (кнопки оставались столбиком). */
-        /* v9: в полосе ссылка на политику уже есть в тексте — подвал с той же ссылкой скрыт на всех ширинах */
-        '#cc-main .cm.cm--bar .cm__footer{display:none!important}' +
+        /* v9 прятал здесь подвал, потому что ссылка на политику дублировалась:
+           она была вшита в румынский текст первого слоя. С v15 в тексте её нет,
+           подвал — единственное место ссылки, и прятать его нельзя:
+           без ссылки на политику требование закона не выполняется. */
         '@media(max-width:640px){#cc-main .cm.cm--bar .cm__btns{flex-direction:row!important;flex-wrap:wrap!important;gap:8px!important;padding-top:8px!important}' +
         '#cc-main .cm.cm--bar .cm__btn-group{display:contents!important}' +
         '#cc-main .cm.cm--bar .cm__btn{flex:1 1 0!important;width:auto!important;margin:0!important;min-height:44px}' +
